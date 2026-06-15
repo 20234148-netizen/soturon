@@ -1,0 +1,4456 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4CAB7D">
+<meta name="description" content="オフライン対応型 Qiita 記事マネージャー">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>QiitaCache — オフライン記事マネージャー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root {
+  --color-bg: #0F1117;
+  --color-surface: #1A1D27;
+  --color-surface-2: #22263A;
+  --color-surface-3: #2A2F45;
+  --color-border: #2E3352;
+  --color-border-light: #3A4060;
+  --color-accent: #4CAB7D;
+  --color-accent-2: #3D8A65;
+  --color-accent-dim: rgba(76,171,125,0.12);
+  --color-accent-glow: rgba(76,171,125,0.2);
+  --color-red: #E25C5C;
+  --color-red-dim: rgba(226,92,92,0.12);
+  --color-amber: #F5A623;
+  --color-amber-dim: rgba(245,166,35,0.12);
+  --color-blue: #5B9BD6;
+  --color-blue-dim: rgba(91,155,214,0.12);
+  --color-purple: #9B7FD4;
+  --color-text: #E8EAF0;
+  --color-text-muted: #7A8099;
+  --color-text-dim: #4A5068;
+  --font-main: 'Noto Sans JP', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-main);
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* === HEADER === */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(15,17,23,0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 20px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--color-text);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.logo-mark {
+  width: 30px;
+  height: 30px;
+  background: var(--color-accent);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #0F1117;
+  font-weight: 800;
+  font-family: var(--font-mono);
+}
+
+.logo span { color: var(--color-accent); }
+
+.header-search {
+  flex: 1;
+  max-width: 400px;
+  position: relative;
+}
+
+.header-search input {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 7px 38px 7px 14px;
+  color: var(--color-text);
+  font-family: var(--font-main);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.header-search input:focus {
+  border-color: var(--color-accent);
+  background: var(--color-surface-2);
+}
+
+.header-search input::placeholder { color: var(--color-text-dim); }
+
+.header-search .search-icon-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-dim);
+  font-size: 13px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.header-search .search-icon-btn:hover {
+  color: var(--color-accent);
+  background: var(--color-accent-dim);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  border: none;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: #0F1117;
+}
+.btn-primary:hover { background: #5DC990; transform: translateY(-1px); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+.btn-ghost:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border-light);
+}
+
+.btn-icon {
+  padding: 7px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+}
+.btn-icon:hover { color: var(--color-text); border-color: var(--color-border-light); }
+
+/* === STATUS BAR === */
+.status-bar {
+  padding: 6px 20px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.online { background: var(--color-accent); box-shadow: 0 0 8px var(--color-accent-glow); animation: pulse 2s infinite; }
+.status-dot.offline { background: var(--color-amber); }
+.status-dot.syncing { background: var(--color-blue); animation: pulse 1s infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.status-text { color: var(--color-text-muted); }
+.status-text.online { color: var(--color-accent); }
+.status-text.offline { color: var(--color-amber); }
+.status-divider { color: var(--color-border-light); margin: 0 2px; }
+
+.pending-badge {
+  background: var(--color-amber-dim);
+  color: var(--color-amber);
+  border: 1px solid rgba(245,166,35,0.25);
+  border-radius: 4px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* === LAYOUT === */
+.app-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 56px - 34px);
+}
+
+/* === SIDEBAR === */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 12px 10px;
+  gap: 4px;
+}
+
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  padding: 8px 10px 4px;
+  font-family: var(--font-mono);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  position: relative;
+}
+
+.nav-item:hover { background: var(--color-surface); color: var(--color-text); }
+.nav-item.active {
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+  border: 1px solid rgba(76,171,125,0.2);
+}
+
+.nav-item i { width: 16px; text-align: center; font-size: 14px; }
+
+.nav-badge {
+  margin-left: auto;
+  background: var(--color-amber-dim);
+  color: var(--color-amber);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.nav-badge.green {
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 8px 4px;
+}
+
+/* === MAIN CONTENT === */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* === TABS === */
+.content-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 20px;
+  background: var(--color-surface);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition);
+  white-space: nowrap;
+  font-family: var(--font-main);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.tab-btn:hover { color: var(--color-text); }
+.tab-btn.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+/* === ARTICLE LIST === */
+.articles-container {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+}
+
+.article-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.article-card:hover {
+  border-color: var(--color-border-light);
+  background: var(--color-surface-2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+}
+
+.article-card.saved {
+  border-left: 3px solid var(--color-accent);
+}
+
+.article-card.pending {
+  border-left: 3px solid var(--color-amber);
+}
+
+.article-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+}
+
+.article-author {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.author-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-surface-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.article-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.article-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.tag-chip {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--color-surface-3);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.tag-chip:hover {
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+  border-color: rgba(76,171,125,0.3);
+}
+
+.article-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.article-actions {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.article-card:hover .article-actions { opacity: 1; }
+
+.action-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all var(--transition);
+}
+
+.action-icon-btn:hover { color: var(--color-text); background: var(--color-border); }
+.action-icon-btn.stocked { color: var(--color-blue); border-color: rgba(91,155,214,0.3); background: var(--color-blue-dim); }
+.action-icon-btn.saved-act { color: var(--color-accent); border-color: rgba(76,171,125,0.3); background: var(--color-accent-dim); }
+.action-icon-btn.following-act { color: var(--color-blue); border-color: rgba(91,155,214,0.3); background: var(--color-blue-dim); }
+
+/* === PANEL RIGHT === */
+.right-panel {
+  width: 320px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.panel-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+  margin-bottom: 10px;
+}
+
+/* === AUTH PANEL === */
+.auth-form { display: flex; flex-direction: column; gap: 8px; }
+
+.form-input {
+  width: 100%;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.form-input:focus { border-color: var(--color-accent); }
+.form-input::placeholder { color: var(--color-text-dim); }
+
+.form-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+  display: block;
+  font-weight: 500;
+}
+
+.auth-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--color-accent-dim);
+  border: 1px solid rgba(76,171,125,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+}
+
+/* === CACHE SCHEDULE === */
+.schedule-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.schedule-row label { font-size: 12px; color: var(--color-text-muted); }
+
+.time-input {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  outline: none;
+  width: 100px;
+}
+
+.time-input:focus { border-color: var(--color-accent); }
+
+.toggle-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+}
+
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--color-surface-3);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background var(--transition);
+  border: 1px solid var(--color-border);
+}
+
+.toggle-slider:before {
+  content: '';
+  position: absolute;
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  top: 2px;
+  background: var(--color-text-muted);
+  border-radius: 50%;
+  transition: all var(--transition);
+}
+
+input:checked + .toggle-slider { background: var(--color-accent-dim); border-color: rgba(76,171,125,0.4); }
+input:checked + .toggle-slider:before { transform: translateX(16px); background: var(--color-accent); }
+
+/* === EDITOR MODAL === */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition);
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  transform: translateY(10px);
+  transition: transform var(--transition);
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.modal-overlay.open .modal { transform: translateY(0); }
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.modal-title { font-size: 15px; font-weight: 700; flex: 1; }
+
+.modal-body { padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; }
+
+.modal-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.editor-title-input {
+  width: 100%;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  color: var(--color-text);
+  font-family: var(--font-main);
+  font-size: 15px;
+  font-weight: 600;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.editor-title-input:focus { border-color: var(--color-accent); }
+.editor-title-input::placeholder { color: var(--color-text-dim); }
+
+.editor-tags-input {
+  width: 100%;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.editor-tags-input:focus { border-color: var(--color-accent); }
+.editor-tags-input::placeholder { color: var(--color-text-dim); }
+
+.editor-toolbar {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  flex-wrap: wrap;
+}
+
+.toolbar-btn {
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  transition: all var(--transition);
+}
+
+.toolbar-btn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.editor-textarea {
+  width: 100%;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  padding: 12px 14px;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.8;
+  outline: none;
+  resize: vertical;
+  min-height: 300px;
+  transition: border-color var(--transition);
+}
+
+.editor-textarea:focus { border-color: var(--color-accent); }
+.editor-textarea::placeholder { color: var(--color-text-dim); }
+
+/* === ARTICLE READER MODAL === */
+/* === READER MODAL === */
+.reader-modal {
+  max-width: min(860px, calc(100vw - 40px)) !important;
+  width: 100% !important;
+  height: calc(100vh - 40px) !important;
+  max-height: none !important;
+}
+
+.reader-modal .modal-body {
+  display: block !important;    /* flex を解除して width:100% が効くように */
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px 28px;
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+}
+
+.reader-content {
+  font-family: var(--font-main);
+  font-size: 15px;
+  line-height: 1.85;
+  color: var(--color-text);
+  word-break: break-word;
+  overflow-wrap: break-word;
+  width: 100%;
+  min-width: 0;
+}
+
+.reader-content h1,
+.reader-content h2,
+.reader-content h3 {
+  margin: 1.6em 0 0.5em;
+  font-weight: 700;
+  color: var(--color-text);
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.reader-content h1 { font-size: 24px; }
+.reader-content h2 { font-size: 20px; }
+.reader-content h3 { font-size: 16px; }
+
+.reader-content p { margin: 0.85em 0; }
+
+.reader-content code {
+  font-family: var(--font-mono);
+  background: var(--color-surface-3);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--color-accent);
+  word-break: break-all;
+}
+
+.reader-content pre {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin: 1.2em 0;
+  /* 横スクロールを pre 自身で処理 */
+  overflow-x: auto;
+  overflow-y: visible;
+  /* 親の幅に収める */
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.reader-content pre code {
+  background: none;
+  padding: 0;
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 1.65;
+  word-break: normal;
+  overflow-wrap: normal;
+  white-space: pre;  /* コード内改行を保持し横スクロールで対応 */
+  display: block;    /* block にして pre の幅を超えたら横スクロール */
+}
+
+.reader-content blockquote {
+  border-left: 3px solid var(--color-accent);
+  padding: 8px 16px;
+  color: var(--color-text-muted);
+  margin: 1em 0;
+  background: var(--color-accent-dim);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  word-break: break-word;
+}
+
+.reader-content ul,
+.reader-content ol {
+  padding-left: 1.6em;
+  margin: 0.85em 0;
+}
+
+.reader-content li { margin: 0.35em 0; }
+
+.reader-content a {
+  color: var(--color-blue);
+  text-decoration: none;
+  word-break: break-all;
+}
+.reader-content a:hover { text-decoration: underline; }
+
+.reader-content del  { color: var(--color-text-dim); text-decoration: line-through; }
+.reader-content strong { color: var(--color-text); }
+
+.reader-content hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 1.8em 0;
+}
+
+/* readerBody の flex 上書きを削除（.reader-modal .modal-body で対応済み） */
+#readerBody { display: block !important; }
+
+/* === QUEUE LIST === */
+.queue-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.queue-item:last-child { border-bottom: none; }
+
+.queue-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.queue-status.pending { background: var(--color-amber); }
+.queue-status.sending { background: var(--color-blue); animation: pulse 1s infinite; }
+.queue-status.done { background: var(--color-accent); }
+
+.queue-info { flex: 1; min-width: 0; }
+
+.queue-action-name {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+}
+
+.queue-target {
+  font-size: 12px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* === TOAST === */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  min-width: 240px;
+  max-width: 360px;
+  animation: slideIn 0.2s ease;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+@keyframes slideIn {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.toast.success { border-left: 3px solid var(--color-accent); }
+.toast.error { border-left: 3px solid var(--color-red); }
+.toast.info { border-left: 3px solid var(--color-blue); }
+.toast.warning { border-left: 3px solid var(--color-amber); }
+
+.toast-icon { font-size: 14px; flex-shrink: 0; }
+.toast.success .toast-icon { color: var(--color-accent); }
+.toast.error .toast-icon { color: var(--color-red); }
+.toast.info .toast-icon { color: var(--color-blue); }
+.toast.warning .toast-icon { color: var(--color-amber); }
+
+/* === EMPTY STATE === */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+  gap: 12px;
+}
+
+.empty-icon {
+  width: 56px;
+  height: 56px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--color-text-dim);
+}
+
+.empty-title { font-size: 15px; font-weight: 700; color: var(--color-text-muted); }
+.empty-desc { font-size: 13px; color: var(--color-text-dim); max-width: 280px; }
+
+/* === SKELETON === */
+.skeleton {
+  background: linear-gradient(90deg, var(--color-surface) 25%, var(--color-surface-2) 50%, var(--color-surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* === SEARCH FILTER BAR === */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  transition: all var(--transition);
+  font-family: var(--font-mono);
+}
+
+.filter-chip:hover { border-color: var(--color-border-light); color: var(--color-text); }
+.filter-chip.active {
+  background: var(--color-accent-dim);
+  border-color: rgba(76,171,125,0.35);
+  color: var(--color-accent);
+}
+
+.filter-divider { height: 20px; width: 1px; background: var(--color-border); }
+
+.view-toggle {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-left: auto;
+}
+
+.view-btn {
+  padding: 5px 10px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all var(--transition);
+}
+
+.view-btn.active { background: var(--color-surface-2); color: var(--color-text); }
+
+/* === PROGRESS BAR === */
+.sync-progress {
+  height: 2px;
+  background: var(--color-surface-3);
+  position: relative;
+  overflow: hidden;
+}
+
+.sync-progress-bar {
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 0.3s ease;
+}
+
+/* === RESPONSIVE TWEAKS === */
+@media (max-width: 960px) {
+  .right-panel { display: none; }
+}
+
+@media (max-width: 640px) {
+  .sidebar { width: 56px; padding: 8px 6px; }
+  .nav-item span, .nav-section-label, .nav-badge { display: none; }
+  .nav-item { justify-content: center; }
+  .nav-item i { width: auto; }
+}
+
+/* === HEADER USER CHIP === */
+.header-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 4px 10px 4px 4px;
+  transition: border-color var(--transition);
+}
+
+.header-user-chip:hover { border-color: var(--color-border-light); }
+
+.header-user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-accent-dim);
+  border: 1px solid rgba(76,171,125,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+.header-user-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-logout-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 0 2px 4px;
+  transition: color var(--transition);
+  border-left: 1px solid var(--color-border);
+  margin-left: 2px;
+}
+
+.header-logout-btn:hover { color: var(--color-red); }
+
+/* === PROFILE VIEW === */
+.profile-header {
+  padding: 24px 20px 0;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.profile-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.profile-avatar-lg {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: var(--color-accent-dim);
+  border: 2px solid rgba(76,171,125,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.profile-avatar-lg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-info { flex: 1; min-width: 0; }
+
+.profile-id {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+
+.profile-name {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+.profile-description {
+  font-size: 12px;
+  color: var(--color-text-dim);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.profile-stats {
+  display: flex;
+  gap: 20px;
+  padding: 0 0 16px;
+  flex-wrap: wrap;
+}
+
+.profile-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+
+.profile-stat:hover { background: var(--color-surface-2); }
+
+.profile-stat-num {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+.profile-stat-label {
+  font-size: 10px;
+  color: var(--color-text-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.profile-stat.active .profile-stat-num { color: var(--color-accent); }
+
+/* User/follow cards */
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition);
+}
+
+.user-card:hover {
+  border-color: var(--color-border-light);
+  background: var(--color-surface-2);
+}
+
+.user-card-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.user-card-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.user-card-info { flex: 1; min-width: 0; }
+
+.user-card-id {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+
+.user-card-desc {
+  font-size: 11px;
+  color: var(--color-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* === SPLIT EDITOR === */
+.editor-split-modal {
+  max-width: 100% !important;
+  width: calc(100vw - 40px) !important;
+  height: calc(100vh - 40px) !important;
+  max-height: none !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-split-header {
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.editor-mode-toggle {
+  display: flex;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.editor-mode-btn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-family: var(--font-main);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.editor-mode-btn:hover { color: var(--color-text); background: var(--color-surface-2); }
+.editor-mode-btn.active { color: var(--color-accent); background: var(--color-accent-dim); }
+
+.editor-meta-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  background: var(--color-surface);
+}
+
+.editor-meta-row .editor-title-input { flex: 1; }
+
+.editor-split-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Write-only mode */
+.editor-split-body.mode-write #editorPane   { flex: 1; }
+.editor-split-body.mode-write #previewPane  { display: none; }
+.editor-split-body.mode-write #editorDivider { display: none; }
+
+/* Split mode */
+.editor-split-body.mode-split #editorPane   { flex: 1; min-width: 0; }
+.editor-split-body.mode-split #previewPane  { flex: 1; min-width: 0; display: flex; }
+.editor-split-body.mode-split #editorDivider { display: block; }
+
+/* Preview-only mode */
+.editor-split-body.mode-preview #editorPane  { display: none; }
+.editor-split-body.mode-preview #previewPane { flex: 1; display: flex; }
+.editor-split-body.mode-preview #editorDivider { display: none; }
+
+.editor-pane {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg);
+  border-right: 1px solid var(--color-border);
+}
+
+.editor-textarea-split {
+  flex: 1;
+  resize: none !important;
+  border-radius: 0 !important;
+  border: none !important;
+  border-top: 1px solid var(--color-border) !important;
+  min-height: 0 !important;
+  height: auto !important;
+}
+
+.editor-pane-footer {
+  padding: 4px 12px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+}
+
+.editor-divider {
+  width: 4px;
+  background: var(--color-border);
+  cursor: col-resize;
+  flex-shrink: 0;
+  transition: background var(--transition);
+}
+
+.editor-divider:hover { background: var(--color-accent); }
+
+.preview-pane {
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--color-surface);
+  padding: 0;
+}
+
+.preview-pane-header {
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.preview-pane-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-text);
+  padding: 20px 20px 8px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.preview-pane-title.empty { color: var(--color-text-dim); font-style: italic; font-weight: 400; font-size: 16px; }
+
+.preview-pane-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0 20px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.preview-pane-body {
+  padding: 20px;
+  flex: 1;
+}
+
+.editor-split-footer {
+  flex-shrink: 0;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.toolbar-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--color-border);
+  margin: 0 2px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* === TAG CHIP INPUT === */
+.tag-chip-input-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  cursor: text;
+  min-height: 36px;
+  transition: border-color var(--transition);
+  width: 300px;
+  flex-shrink: 0;
+}
+
+.tag-chip-input-wrap:focus-within {
+  border-color: var(--color-accent);
+}
+
+.tag-chip-input-wrap .tag-chip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-accent-dim);
+  border: 1px solid rgba(76,171,125,0.3);
+  color: var(--color-accent);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.tag-chip-remove {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  cursor: pointer;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity var(--transition);
+}
+
+.tag-chip-remove:hover { opacity: 1; }
+
+.tag-chip-text-input {
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  outline: none;
+  min-width: 80px;
+  flex: 1;
+}
+
+.tag-chip-text-input::placeholder { color: var(--color-text-dim); }
+
+/* === HIDDEN === */
+.hidden { display: none !important; }
+
+/* === LOGIN SCREEN === */
+#loginScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 40px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.login-logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.login-logo-mark {
+  width: 56px;
+  height: 56px;
+  background: var(--color-accent);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 800;
+  color: #0F1117;
+  letter-spacing: -1px;
+}
+
+.login-app-name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+
+.login-app-name span { color: var(--color-accent); }
+
+.login-tagline {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+}
+
+.login-input-wrap {
+  position: relative;
+}
+
+.login-input {
+  width: 100%;
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 11px 42px 11px 14px;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  letter-spacing: 0.04em;
+}
+
+.login-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-dim);
+}
+
+.login-input::placeholder { color: var(--color-text-dim); letter-spacing: 0; }
+
+.login-input.error {
+  border-color: var(--color-red);
+  box-shadow: 0 0 0 3px var(--color-red-dim);
+}
+
+.login-eye-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-text-dim);
+  cursor: pointer;
+  padding: 2px;
+  font-size: 14px;
+  transition: color var(--transition);
+}
+
+.login-eye-btn:hover { color: var(--color-text-muted); }
+
+.login-error-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--color-red-dim);
+  border: 1px solid rgba(226,92,92,0.3);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--color-red);
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.login-error-msg.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.login-error-msg i { margin-top: 1px; flex-shrink: 0; }
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius-md);
+  color: #0F1117;
+  font-family: var(--font-main);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-btn:hover:not(:disabled) {
+  background: #5DC990;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(76,171,125,0.3);
+}
+
+.login-btn:active:not(:disabled) { transform: translateY(0); }
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-btn .spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(15,17,23,0.3);
+  border-top-color: #0F1117;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none;
+}
+
+.login-btn.loading .spinner { display: block; }
+.login-btn.loading .btn-label { display: none; }
+
+.login-divider {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.login-divider span {
+  font-size: 11px;
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+}
+
+.login-hint {
+  width: 100%;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-hint-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.login-hint-step {
+  font-size: 12px;
+  color: var(--color-text-dim);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.5;
+}
+
+.login-hint-step-num {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  background: var(--color-surface-3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin-top: 1px;
+}
+
+.login-hint-link {
+  color: var(--color-blue);
+  text-decoration: none;
+}
+
+.login-hint-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <a href="#" class="logo">
+    <div class="logo-mark">Q$</div>
+    Qiita<span>Cache</span>
+  </a>
+  <div class="header-search">
+    <input type="text" id="globalSearch" placeholder="記事・タグを検索..." autocomplete="off">
+    <button class="search-icon-btn" id="searchBtn" title="検索">
+      <i class="fas fa-search"></i>
+    </button>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-primary" id="newArticleBtn">
+      <i class="fas fa-pen"></i> 執筆
+    </button>
+    <!-- User info chip (shown after login) -->
+    <div id="headerUser" class="header-user-chip hidden">
+      <div class="header-user-avatar" id="headerUserAvatar">?</div>
+      <span class="header-user-name" id="headerUserName">—</span>
+      <button class="header-logout-btn" onclick="logout()" title="ログアウト">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- STATUS BAR -->
+<div class="status-bar" id="statusBar">
+  <div class="status-indicator">
+    <div class="status-dot online" id="statusDot"></div>
+    <span class="status-text online" id="statusText">オンライン</span>
+  </div>
+  <span class="status-divider">|</span>
+  <span id="cacheInfo" style="color:var(--color-text-dim)">キャッシュ: —</span>
+  <span class="status-divider">|</span>
+  <span id="pendingInfo" style="color:var(--color-text-dim)">投稿待ち: 0件</span>
+  <span id="pendingBadge" class="pending-badge hidden">未送信アクションあり</span>
+</div>
+
+<!-- APP LAYOUT -->
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-section-label">ビュー</div>
+    <button class="nav-item active" data-view="feed" onclick="switchView('feed', this)">
+      <i class="fas fa-rss"></i> <span>フィード</span>
+    </button>
+    <button class="nav-item" data-view="saved" onclick="switchView('saved', this)">
+      <i class="fas fa-bookmark"></i> <span>保存済み</span>
+      <span class="nav-badge green" id="savedCount">0</span>
+    </button>
+    <button class="nav-item" data-view="drafts" onclick="switchView('drafts', this)">
+      <i class="fas fa-file-alt"></i> <span>下書き</span>
+      <span class="nav-badge" id="draftsCount">0</span>
+    </button>
+    <button class="nav-item" data-view="queue" onclick="switchView('queue', this)">
+      <i class="fas fa-clock"></i> <span>送信キュー</span>
+      <span class="nav-badge" id="queueCount">0</span>
+    </button>
+
+    <div class="sidebar-divider"></div>
+    <div class="nav-section-label">アカウント</div>
+    <button class="nav-item" data-view="profile" onclick="switchView('profile', this)">
+      <i class="fas fa-user-circle"></i> <span>プロフィール</span>
+    </button>
+
+    <div class="sidebar-divider"></div>
+    <div class="nav-section-label">設定</div>
+    <button class="nav-item" data-view="settings" onclick="switchView('settings', this)">
+      <i class="fas fa-cog"></i> <span>設定</span>
+    </button>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content" id="mainContent">
+
+    <!-- FILTER BAR -->
+    <!-- ACTION BAR (always visible) -->
+    <div class="filter-bar" id="filterBar">
+      <!-- Feed-only chips (hidden on other views) -->
+      <div id="feedFilterChips">
+        <button class="filter-chip active" data-filter="all" onclick="setFilter('all', this)">すべて</button>
+        <button class="filter-chip" data-filter="tag" onclick="setFilter('tag', this)">タグ検索</button>
+        <button class="filter-chip" data-filter="text" onclick="setFilter('text', this)">本文検索</button>
+        <div class="filter-divider"></div>
+      </div>
+      <span style="font-size:11px;color:var(--color-text-dim);font-family:var(--font-mono)" id="resultCount"></span>
+      <!-- View toggle (feed only) -->
+      <div class="view-toggle" id="viewToggle">
+        <button class="view-btn active" onclick="setViewMode('list', this)" title="リスト"><i class="fas fa-list"></i></button>
+        <button class="view-btn" onclick="setViewMode('compact', this)" title="コンパクト"><i class="fas fa-th-list"></i></button>
+      </div>
+      <!-- Sync button: always visible -->
+      <button class="btn btn-ghost" id="syncBtn" title="手動同期" style="margin-left:auto;padding:5px 12px;font-size:12px">
+        <i class="fas fa-sync-alt" id="syncIcon"></i> <span class="sync-text">同期</span>
+      </button>
+    </div>
+
+    <!-- ARTICLES CONTAINER -->
+    <div class="articles-container" id="articlesContainer">
+      <!-- Dynamically filled -->
+    </div>
+
+    <!-- SETTINGS VIEW (hidden by default) -->
+    <div class="articles-container hidden" id="settingsView">
+      <!-- filled dynamically -->
+    </div>
+
+    <!-- PROFILE VIEW (hidden by default) -->
+    <div class="hidden" id="profileView">
+      <!-- Profile header -->
+      <div class="profile-header" id="profileHeader"></div>
+      <!-- Profile tabs -->
+      <div class="content-tabs" id="profileTabs">
+        <button class="tab-btn active" data-ptab="myArticles" onclick="switchProfileTab('myArticles', this)">
+          <i class="fas fa-newspaper"></i> 自分の記事
+        </button>
+        <button class="tab-btn" data-ptab="likedArticles" onclick="switchProfileTab('likedArticles', this)">
+          <i class="fas fa-bookmark"></i> ストック済み
+        </button>
+        <button class="tab-btn" data-ptab="following" onclick="switchProfileTab('following', this)">
+          <i class="fas fa-user-check"></i> フォロー中
+        </button>
+        <button class="tab-btn" data-ptab="followers" onclick="switchProfileTab('followers', this)">
+          <i class="fas fa-users"></i> フォロワー
+        </button>
+      </div>
+      <!-- Profile tab content -->
+      <div class="articles-container" id="profileTabContent"></div>
+    </div>
+
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="right-panel">
+    <!-- CACHE SCHEDULE -->
+    <div class="panel-section">
+      <div class="panel-title">定時キャッシュ</div>
+      <div class="schedule-row">
+        <label>自動キャッシュ</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="scheduleToggle" onchange="toggleSchedule()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="schedule-row">
+        <label>キャッシュ時刻</label>
+        <input type="time" class="time-input" id="scheduleTime" value="07:00" onchange="saveSchedule()">
+      </div>
+      <div style="font-size:11px;color:var(--color-text-dim);margin-top:4px">
+        <i class="fas fa-info-circle" style="color:var(--color-blue);margin-right:4px"></i>
+        指定時刻に最新10件を自動取得
+      </div>
+      <div id="nextScheduleInfo" style="font-size:11px;color:var(--color-text-muted);margin-top:6px;font-family:var(--font-mono)"></div>
+    </div>
+
+  </aside>
+</div>
+
+<!-- EDIT ARTICLE MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-header">
+      <div class="modal-title">
+        <i class="fas fa-edit" style="color:var(--color-blue);margin-right:8px"></i>
+        記事を編集
+      </div>
+      <button class="btn-icon" onclick="closeModal('editModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editArticleId">
+      <input type="text" class="editor-title-input" id="editArticleTitle" placeholder="記事タイトルを入力...">
+      <input type="text" class="editor-tags-input" id="editArticleTags" placeholder="タグ（カンマ区切り）: JavaScript, React, Node.js">
+      <div>
+        <div class="editor-toolbar">
+          <button class="toolbar-btn" onclick="insertEditMd('**', '**')"><b>B</b></button>
+          <button class="toolbar-btn" onclick="insertEditMd('*', '*')"><i>I</i></button>
+          <button class="toolbar-btn" onclick="insertEditMd('`', '`')">code</button>
+          <button class="toolbar-btn" onclick="insertEditMd('\n```\n', '\n```\n')">block</button>
+          <button class="toolbar-btn" onclick="insertEditMd('## ', '')">H2</button>
+          <button class="toolbar-btn" onclick="insertEditMd('### ', '')">H3</button>
+          <button class="toolbar-btn" onclick="insertEditMd('- ', '')">list</button>
+          <button class="toolbar-btn" onclick="insertEditMd('[', '](url)')">link</button>
+          <button class="toolbar-btn" onclick="insertEditMd('> ', '')">quote</button>
+        </div>
+        <textarea class="editor-textarea" id="editArticleBody" style="min-height:320px"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div style="font-size:12px;color:var(--color-text-muted)">
+        <i class="fas fa-info-circle" style="color:var(--color-blue);margin-right:4px"></i>
+        変更はQiitaに直接反映されます
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="closeModal('editModal')">キャンセル</button>
+        <button class="btn btn-primary" id="updateBtn" onclick="updateArticle()">
+          <i class="fas fa-check"></i> <span id="updateBtnText">変更を保存</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--color-red)">
+        <i class="fas fa-trash" style="margin-right:8px"></i>
+        記事を削除
+      </div>
+      <button class="btn-icon" onclick="closeModal('deleteModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" style="gap:16px">
+      <p style="font-size:14px;color:var(--color-text-muted);line-height:1.7">
+        この記事を削除しますか？<br>
+        <strong style="color:var(--color-text)" id="deleteArticleTitle"></strong>
+      </p>
+      <div style="background:var(--color-red-dim);border:1px solid rgba(226,92,92,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--color-red)">
+        <i class="fas fa-exclamation-triangle" style="margin-right:6px"></i>
+        削除後は元に戻せません。Qiitaからも完全に削除されます。
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('deleteModal')">キャンセル</button>
+      <button class="btn" style="background:var(--color-red);color:#fff" id="deleteConfirmBtn" onclick="confirmDeleteArticle()">
+        <i class="fas fa-trash"></i> <span id="deleteBtnText">削除する</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo-wrap">
+      <div class="login-logo-mark">Q$</div>
+      <div class="login-app-name">Qiita<span>Cache</span></div>
+    </div>
+    <p class="login-tagline">アクセストークンでログインすると<br>記事の投稿・ストック・フォローができます</p>
+
+    <div class="login-form">
+      <div class="login-field">
+        <label class="login-label">アクセストークン</label>
+        <div class="login-input-wrap">
+          <input type="password" class="login-input" id="loginTokenInput"
+            placeholder="xxxxxxxxxxxxxxxxxxxx"
+            autocomplete="off" spellcheck="false"
+            onkeydown="if(event.key==='Enter') doLogin()">
+          <button class="login-eye-btn" onclick="toggleLoginEye(this)" type="button" tabindex="-1">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="login-error-msg" id="loginError">
+        <i class="fas fa-times-circle"></i>
+        <span id="loginErrorText">トークンが無効です。Qiita の設定画面で発行したトークンを入力してください。</span>
+      </div>
+
+      <button class="login-btn" id="loginBtn" onclick="doLogin()">
+        <div class="spinner"></div>
+        <span class="btn-label"><i class="fas fa-key"></i> ログイン</span>
+      </button>
+
+      <div class="login-divider"><span>トークンの取得方法</span></div>
+
+      <div class="login-hint">
+        <div class="login-hint-title">トークン発行手順</div>
+        <div class="login-hint-step">
+          <div class="login-hint-step-num">1</div>
+          <span><a class="login-hint-link" href="https://qiita.com/settings/tokens/new" target="_blank" rel="noopener">qiita.com/settings/tokens/new</a> を開く</span>
+        </div>
+        <div class="login-hint-step">
+          <div class="login-hint-step-num">2</div>
+          <span>スコープ <code style="font-family:var(--font-mono);background:var(--color-surface-3);padding:1px 5px;border-radius:3px;font-size:11px">read_qiita</code> と <code style="font-family:var(--font-mono);background:var(--color-surface-3);padding:1px 5px;border-radius:3px;font-size:11px">write_qiita</code> にチェック</span>
+        </div>
+        <div class="login-hint-step">
+          <div class="login-hint-step-num">3</div>
+          <span>発行されたトークンをここに貼り付け</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================================================
+// LOGIN SCREEN
+// =====================================================
+function toggleLoginEye(btn) {
+  const input = document.getElementById('loginTokenInput');
+  const icon = btn.querySelector('i');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.className = 'fas fa-eye-slash';
+  } else {
+    input.type = 'password';
+    icon.className = 'fas fa-eye';
+  }
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  document.getElementById('loginErrorText').textContent = msg;
+  document.getElementById('loginTokenInput').classList.add('error');
+  el.classList.add('visible');
+}
+
+function clearLoginError() {
+  document.getElementById('loginError').classList.remove('visible');
+  document.getElementById('loginTokenInput').classList.remove('error');
+}
+
+async function doLogin() {
+  const tokenRaw = document.getElementById('loginTokenInput').value.trim();
+  if (!tokenRaw) {
+    showLoginError('アクセストークンを入力してください。');
+    return;
+  }
+
+  clearLoginError();
+
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+
+  try {
+    const res = await fetch('https://qiita.com/api/v2/authenticated_user', {
+      headers: { 'Authorization': `Bearer ${tokenRaw}` }
+    });
+
+    if (res.status === 401) {
+      showLoginError('トークンが無効です。正しいアクセストークンを入力してください。');
+      return;
+    }
+    if (res.status === 403) {
+      showLoginError('権限が不足しています。read_qiita スコープを有効にしてトークンを再発行してください。');
+      return;
+    }
+    if (!res.ok) {
+      showLoginError(`サーバーエラー (${res.status})。しばらく待ってから再試行してください。`);
+      return;
+    }
+
+    const user = await res.json();
+    // Success — persist and proceed
+    localStorage.setItem('qiita_token', tokenRaw);
+    STATE.token = tokenRaw;
+    STATE.user = user;
+    onLoginSuccess(user);
+
+  } catch (e) {
+    // Network error (could be offline)
+    if (!navigator.onLine) {
+      // Allow offline login if token already saved
+      const saved = localStorage.getItem('qiita_token');
+      if (saved && saved === tokenRaw) {
+        STATE.token = saved;
+        onLoginSuccess(null); // offline — no user info
+      } else {
+        showLoginError('オフラインのため認証できません。以前ログインしたトークンを入力するとオフラインでも続行できます。');
+      }
+    } else {
+      showLoginError('ネットワークエラー: ' + e.message);
+    }
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+}
+
+function onLoginSuccess(user) {
+  // Update header user chip
+  const chip = document.getElementById('headerUser');
+  const avatarEl = document.getElementById('headerUserAvatar');
+  const nameEl = document.getElementById('headerUserName');
+
+  if (user) {
+    STATE.user = user;
+    avatarEl.textContent = (user.id || '?').slice(0, 2).toUpperCase();
+    nameEl.textContent = '@' + user.id;
+  } else {
+    avatarEl.textContent = '?';
+    nameEl.textContent = 'オフライン';
+  }
+  chip.classList.remove('hidden');
+
+  // Slide out login screen
+  const screen = document.getElementById('loginScreen');
+  screen.style.opacity = '0';
+  screen.style.transform = 'scale(0.97)';
+  screen.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+  setTimeout(() => { screen.style.display = 'none'; }, 320);
+
+  // Sync following / stocked list in background (best-effort)
+  if (user && STATE.token) {
+    syncFollowingList(user.id);
+    syncStockedList(user.id);
+  }
+}
+
+async function syncFollowingList(userId) {
+  try {
+    const followees = await fetchAllPages(
+      `https://qiita.com/api/v2/users/${userId}/followees`, STATE.token
+    );
+    localStorage.setItem('qiita_following', JSON.stringify(followees.map(u => u.id)));
+  } catch(e) { /* best effort */ }
+}
+
+async function syncStockedList(userId) {
+  try {
+    const stocks = await fetchAllPages(
+      `https://qiita.com/api/v2/users/${userId}/stocks`, STATE.token
+    );
+    localStorage.setItem('qiita_stocked', JSON.stringify(stocks.map(a => a.id)));
+  } catch(e) { /* best effort */ }
+}
+
+function logout() {
+  localStorage.removeItem('qiita_token');
+  STATE.token = null;
+  STATE.user = null;
+
+  // Reset header chip
+  document.getElementById('headerUser').classList.add('hidden');
+
+  // Reset login input & errors
+  document.getElementById('loginTokenInput').value = '';
+  clearLoginError();
+
+  // Show login screen
+  const screen = document.getElementById('loginScreen');
+  screen.style.display = 'flex';
+  screen.style.opacity = '0';
+  screen.style.transform = 'scale(0.97)';
+  screen.style.transition = 'none';
+  requestAnimationFrame(() => {
+    screen.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    screen.style.opacity = '1';
+    screen.style.transform = 'scale(1)';
+  });
+
+  showToast('ログアウトしました', 'info');
+
+  // Reset profile cache
+  PROFILE_STATE.myArticles = null;
+  PROFILE_STATE.likedArticles = null;
+  PROFILE_STATE.following = null;
+  PROFILE_STATE.followers = null;
+  PROFILE_STATE.currentTab = 'myArticles';
+}
+</script>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ARTICLE EDITOR MODAL -->
+<div class="modal-overlay" id="editorModal">
+  <div class="modal editor-split-modal">
+    <!-- HEADER -->
+    <div class="modal-header editor-split-header">
+      <div class="modal-title">
+        <i class="fas fa-pen" style="color:var(--color-accent);margin-right:8px"></i>
+        新規記事を執筆
+      </div>
+      <!-- Mode toggle -->
+      <div class="editor-mode-toggle">
+        <button class="editor-mode-btn active" id="modeWrite" onclick="setEditorMode('write')" title="エディタのみ">
+          <i class="fas fa-code"></i> 編集
+        </button>
+        <button class="editor-mode-btn" id="modeSplit" onclick="setEditorMode('split')" title="左右分割">
+          <i class="fas fa-columns"></i> 分割
+        </button>
+        <button class="editor-mode-btn" id="modePreview" onclick="setEditorMode('preview')" title="プレビューのみ">
+          <i class="fas fa-eye"></i> プレビュー
+        </button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-left:8px">
+        <div id="editorStatusDot" class="status-dot online"></div>
+        <span id="editorStatusText" style="font-size:11px;color:var(--color-text-muted)">オンライン</span>
+      </div>
+      <button class="btn-icon" onclick="closeModal('editorModal')" style="margin-left:8px"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- META ROW (title + tags) -->
+    <div class="editor-meta-row">
+      <input type="text" class="editor-title-input" id="articleTitle" placeholder="記事タイトルを入力..." oninput="livePreview()">
+      <div class="tag-chip-input-wrap" id="articleTagsWrap" onclick="document.getElementById('articleTagInput').focus()">
+        <!-- チップはJS で挿入 -->
+        <input type="text" class="tag-chip-text-input" id="articleTagInput"
+          placeholder="タグを入力してEnter（最大5つ）"
+          onkeydown="handleTagInput(event)"
+          oninput="livePreview()">
+      </div>
+      <!-- 実際の送信値はこちら（カンマ区切り文字列） -->
+      <input type="hidden" id="articleTags">
+    </div>
+
+    <!-- SPLIT BODY -->
+    <div class="editor-split-body" id="editorSplitBody">
+      <!-- LEFT: Editor -->
+      <div class="editor-pane" id="editorPane">
+        <div class="editor-toolbar">
+          <button class="toolbar-btn" onclick="insertMd('**', '**')" title="太字"><b>B</b></button>
+          <button class="toolbar-btn" onclick="insertMd('*', '*')" title="斜体"><i>I</i></button>
+          <button class="toolbar-btn" onclick="insertMd('~~', '~~')" title="取り消し線"><s>S</s></button>
+          <span class="toolbar-sep"></span>
+          <button class="toolbar-btn" onclick="insertMd('# ', '')" title="H1">H1</button>
+          <button class="toolbar-btn" onclick="insertMd('## ', '')" title="H2">H2</button>
+          <button class="toolbar-btn" onclick="insertMd('### ', '')" title="H3">H3</button>
+          <span class="toolbar-sep"></span>
+          <button class="toolbar-btn" onclick="insertMd('\`', '\`')" title="インラインコード">code</button>
+          <button class="toolbar-btn" onclick="insertMd('\n\`\`\`\n', '\n\`\`\`\n')" title="コードブロック">block</button>
+          <span class="toolbar-sep"></span>
+          <button class="toolbar-btn" onclick="insertMd('- ', '')" title="箇条書き">list</button>
+          <button class="toolbar-btn" onclick="insertMd('> ', '')" title="引用">quote</button>
+          <button class="toolbar-btn" onclick="insertMd('[', '](url)')" title="リンク">link</button>
+          <span class="toolbar-sep"></span>
+          <button class="toolbar-btn" onclick="insertMd('---\n', '')" title="区切り線">hr</button>
+        </div>
+        <textarea class="editor-textarea editor-textarea-split" id="articleBody"
+          placeholder="# 記事タイトル&#10;&#10;## はじめに&#10;&#10;ここに内容を書きます。"
+          oninput="livePreview()"></textarea>
+        <div class="editor-pane-footer">
+          <span id="editorCharCount" style="font-family:var(--font-mono);font-size:11px;color:var(--color-text-dim)">0文字</span>
+        </div>
+      </div>
+
+      <!-- DIVIDER -->
+      <div class="editor-divider" id="editorDivider"></div>
+
+      <!-- RIGHT: Preview -->
+      <div class="preview-pane" id="previewPane">
+        <div class="preview-pane-header">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim);font-family:var(--font-mono)">
+            <i class="fas fa-eye" style="margin-right:4px"></i>プレビュー
+          </span>
+        </div>
+        <div class="preview-pane-title" id="previewTitle">タイトル未入力</div>
+        <div class="preview-pane-tags" id="previewTags"></div>
+        <div class="reader-content preview-pane-body" id="previewBody">
+          <p style="color:var(--color-text-dim);font-style:italic">本文を入力するとここにプレビューが表示されます</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="modal-footer editor-split-footer">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="saveDraft()">
+          <i class="fas fa-save"></i> 下書き保存
+        </button>
+        <button class="btn btn-primary" id="publishBtn" onclick="publishArticle()">
+          <i class="fas fa-paper-plane"></i> <span id="publishBtnText">投稿する</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ARTICLE READER MODAL -->
+<div class="modal-overlay" id="readerModal">
+  <div class="modal reader-modal">
+    <div class="modal-header" style="align-items:flex-start">
+      <div style="flex:1;min-width:0">
+        <div class="modal-title" id="readerTitle" style="word-break:break-word;white-space:normal;line-height:1.4">記事タイトル</div>
+        <div style="font-size:11px;color:var(--color-text-dim);margin-top:4px;font-family:var(--font-mono)" id="readerMeta"></div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="action-icon-btn" id="readerStockBtn" onclick="toggleStockFromReader()" title="ストック">
+          <i class="fas fa-layer-group"></i>
+        </button>
+        <button class="action-icon-btn" id="readerSaveBtn" onclick="toggleSaveFromReader()" title="保存">
+          <i class="fas fa-bookmark"></i>
+        </button>
+        <button class="btn-icon" onclick="closeModal('readerModal')"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+    <div class="modal-body reader-content" id="readerBody" style="gap:0"></div>
+  </div>
+</div>
+
+<script>
+// =====================================================
+// STATE
+// =====================================================
+const STATE = {
+  isOnline: navigator.onLine,
+  articles: [],
+  savedArticles: [],
+  drafts: [],
+  queue: [],
+  pendingActions: [],
+  token: null,
+  user: null,
+  currentView: 'feed',
+  currentFilter: 'all',
+  searchQuery: '',
+  scheduleTimer: null,
+  viewMode: 'list',
+  currentArticle: null,
+  cacheTimestamp: null,
+  isFetching: false,   // 記事取得中フラグ
+};
+
+// =====================================================
+// INDEXEDDB
+// =====================================================
+let db;
+
+async function initDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('QiitaCacheDB', 3);
+    req.onupgradeneeded = (e) => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('articles')) {
+        d.createObjectStore('articles', { keyPath: 'id' });
+      }
+      if (!d.objectStoreNames.contains('saved')) {
+        d.createObjectStore('saved', { keyPath: 'id' });
+      }
+      if (!d.objectStoreNames.contains('drafts')) {
+        d.createObjectStore('drafts', { keyPath: 'id' });
+      }
+      if (!d.objectStoreNames.contains('queue')) {
+        d.createObjectStore('queue', { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => { db = req.result; resolve(db); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbGet(store, key) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).get(key);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbGetAll(store) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => res(req.result || []);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbPut(store, item) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).put(item);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbDelete(store, key) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).delete(key);
+    req.onsuccess = () => res();
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbPutAll(store, items) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const s = tx.objectStore(store);
+    items.forEach(item => s.put(item));
+    tx.oncomplete = res;
+    tx.onerror = () => rej(tx.error);
+  });
+}
+
+// =====================================================
+// NETWORK STATUS
+// =====================================================
+function updateNetworkStatus(online) {
+  STATE.isOnline = online;
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  const edDot = document.getElementById('editorStatusDot');
+  const edText = document.getElementById('editorStatusText');
+  const publishText = document.getElementById('publishBtnText');
+
+  if (online) {
+    dot.className = 'status-dot online';
+    text.textContent = 'オンライン';
+    text.className = 'status-text online';
+    if (edDot) { edDot.className = 'status-dot online'; }
+    if (edText) { edText.textContent = 'オンライン — 投稿後すぐに公開されます'; }
+    if (publishText) publishText.textContent = '投稿する';
+    // Auto-sync pending actions
+    syncPendingActions();
+  } else {
+    dot.className = 'status-dot offline';
+    text.textContent = `オフライン閲覧中（${STATE.cacheTimestamp ? formatTime(STATE.cacheTimestamp) : '—'}）`;
+    text.className = 'status-text offline';
+    if (edDot) { edDot.className = 'status-dot offline'; }
+    if (edText) { edText.textContent = 'オフライン — 「投稿待ちフォルダ」へ保存します'; }
+    if (publishText) publishText.textContent = '投稿待ちに追加';
+  }
+}
+
+window.addEventListener('online', () => {
+  updateNetworkStatus(true);
+  showToast('ネットワーク復帰 — データを同期しています', 'success');
+  if (STATE.currentView === 'feed') fetchArticles();
+});
+
+window.addEventListener('offline', () => {
+  updateNetworkStatus(false);
+  showToast('オフラインモードに切り替えました', 'warning');
+  loadOfflineArticles();
+});
+
+// =====================================================
+// AUTH — handled by login screen script block above
+// =====================================================
+// saveToken(), logout(), fetchUserInfo() are replaced by
+// doLogin() / onLoginSuccess() / logout() in the login block.
+
+// =====================================================
+// FETCH ARTICLES (Online)
+// =====================================================
+let _fetchGeneration = 0; // リクエスト世代カウンタ（古い結果の描画を防ぐ）
+
+async function fetchArticles(query = '') {
+  if (!STATE.isOnline) { loadOfflineArticles(); return; }
+
+  // 新しい世代を発行。これより古い世代の結果は描画しない
+  const myGen = ++_fetchGeneration;
+
+  // 検索中・取得中は記事一覧を表示しない（ローディング表示）
+  if (STATE.currentView === 'feed') {
+    showSkeletons();
+    document.getElementById('cacheInfo').textContent = '取得中...';
+    document.getElementById('resultCount').textContent = '';
+  }
+
+  STATE.isFetching = true;
+  updateSyncBtnState(true);
+
+  const headers = {};
+  if (STATE.token) headers['Authorization'] = `Bearer ${STATE.token}`;
+
+  const PER_PAGE = 100;
+  const MAX_PAGES = 10;
+  let allArticles = [];
+  let page = 1;
+
+  try {
+    while (page <= MAX_PAGES) {
+      let url = `https://qiita.com/api/v2/items?per_page=${PER_PAGE}&page=${page}`;
+      if (query) {
+        if (STATE.currentFilter === 'tag') url += `&query=tag:${encodeURIComponent(query)}`;
+        else url += `&query=${encodeURIComponent(query)}`;
+      }
+
+      const res = await fetch(url, { headers });
+      if (!res.ok) throw new Error(`API Error ${res.status}`);
+
+      const batch = await res.json();
+
+      // この間に新しい検索が開始されていたら、この結果は使わない
+      if (myGen !== _fetchGeneration) return;
+
+      allArticles = allArticles.concat(batch);
+
+      // 進捗だけ更新（記事リストは確定後に一括表示）
+      if (STATE.currentView === 'feed') {
+        document.getElementById('cacheInfo').textContent =
+          `取得中... ${allArticles.length}件`;
+      }
+
+      if (batch.length < PER_PAGE) break;
+      page++;
+    }
+
+    // 古い世代なら結果を反映しない
+    if (myGen !== _fetchGeneration) return;
+
+    STATE.articles = allArticles;
+
+    // フィード表示中なら確定結果を一括描画
+    if (STATE.currentView === 'feed') {
+      renderArticles(allArticles);
+      document.getElementById('resultCount').textContent = `${allArticles.length}件`;
+    }
+
+    // クエリなしの全件取得時のみキャッシュ保存（上位10件）
+    if (!query) {
+      const top10 = allArticles.slice(0, 10);
+      STATE.cacheTimestamp = new Date().toISOString();
+      localStorage.setItem('qiita_cache_ts', STATE.cacheTimestamp);
+      await dbPutAll('articles', top10.map(a => ({ ...a, _cached: STATE.cacheTimestamp })));
+    }
+
+    if (STATE.currentView === 'feed') {
+      document.getElementById('cacheInfo').textContent =
+        STATE.cacheTimestamp ? `キャッシュ: ${formatTime(STATE.cacheTimestamp)}` : 'キャッシュ: なし';
+    }
+
+  } catch (e) {
+    if (myGen !== _fetchGeneration) return; // 古い世代のエラーは無視
+
+    if (!STATE.isOnline) {
+      loadOfflineArticles();
+    } else {
+      showToast('記事の取得に失敗: ' + e.message, 'error');
+      if (allArticles.length > 0 && STATE.currentView === 'feed') {
+        STATE.articles = allArticles;
+        renderArticles(allArticles);
+        document.getElementById('resultCount').textContent = `${allArticles.length}件`;
+      } else if (allArticles.length === 0) {
+        loadOfflineArticles();
+      }
+    }
+  } finally {
+    if (myGen === _fetchGeneration) {
+      STATE.isFetching = false;
+      updateSyncBtnState(false);
+    }
+  }
+}
+
+function updateSyncBtnState(fetching) {
+  const btn = document.getElementById('syncBtn');
+  const icon = document.getElementById('syncIcon');
+  if (!btn || !icon) return;
+  if (fetching) {
+    icon.style.animation = 'spin 1s linear infinite';
+    btn.querySelector('.sync-text').textContent = '取得中...';
+  } else {
+    icon.style.animation = '';
+    btn.querySelector('.sync-text').textContent = '同期';
+  }
+}
+
+// =====================================================
+// LOAD OFFLINE ARTICLES
+// =====================================================
+async function loadOfflineArticles() {
+  try {
+    const articles = await dbGetAll('articles');
+    STATE.articles = articles;
+    const ts = localStorage.getItem('qiita_cache_ts');
+    STATE.cacheTimestamp = ts;
+    renderArticles(articles);
+    document.getElementById('cacheInfo').textContent = ts
+      ? `オフラインキャッシュ (${formatTime(ts)})` : 'キャッシュなし';
+  } catch (e) {
+    renderEmptyState('データなし', 'オフライン記事が見つかりません。オンライン時に記事を取得してください。');
+  }
+}
+
+// =====================================================
+// SEARCH (Online + Offline)
+// =====================================================
+function performSearch(query) {
+  STATE.searchQuery = query;
+
+  // フィード以外のビューで検索した場合はフィード画面へ自動的に移動する
+  if (STATE.currentView !== 'feed') {
+    const feedNavBtn = document.querySelector('.nav-item[data-view="feed"]');
+    switchView('feed', feedNavBtn);
+    return; // switchView 内で検索が実行される
+  }
+
+  if (!query.trim()) {
+    if (STATE.isOnline) fetchArticles();
+    else loadOfflineArticles();
+    return;
+  }
+  if (STATE.isOnline) {
+    fetchArticles(query);
+  } else {
+    performOfflineSearch(query);
+  }
+}
+
+function performOfflineSearch(query) {
+  const q = query.toLowerCase();
+  const results = STATE.articles.filter(a => {
+    if (STATE.currentFilter === 'tag') {
+      return a.tags && a.tags.some(t => t.name.toLowerCase().includes(q));
+    } else if (STATE.currentFilter === 'text') {
+      return (a.body || '').toLowerCase().includes(q);
+    } else {
+      return (a.title || '').toLowerCase().includes(q) ||
+        (a.body || '').toLowerCase().includes(q) ||
+        (a.tags || []).some(t => t.name.toLowerCase().includes(q));
+    }
+  });
+  STATE.articles = results;
+  renderArticles(results);
+  document.getElementById('resultCount').textContent = `${results.length}件`;
+  showToast(`オフライン検索: ${results.length}件ヒット`, 'info');
+}
+
+// 検索は「検索ボタン」または「Enterキー」でのみ実行する
+document.getElementById('searchBtn').addEventListener('click', () => {
+  performSearch(document.getElementById('globalSearch').value);
+});
+
+document.getElementById('globalSearch').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    performSearch(e.target.value);
+  }
+});
+
+// =====================================================
+// RENDER ARTICLES
+// =====================================================
+function renderArticles(articles) {
+  const container = document.getElementById('articlesContainer');
+  document.getElementById('resultCount').textContent = `${articles.length}件`;
+
+  if (!articles.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon"><i class="fas fa-search"></i></div>
+        <div class="empty-title">記事が見つかりません</div>
+        <div class="empty-desc">検索条件を変更するか、オンラインで最新記事を取得してください</div>
+      </div>`;
+    return;
+  }
+
+  const savedIds = STATE.savedArticles.map(s => s.id);
+  const stockedIds = JSON.parse(localStorage.getItem('qiita_stocked') || '[]');
+  const followingIds = JSON.parse(localStorage.getItem('qiita_following') || '[]');
+
+  container.innerHTML = articles.map(a => {
+    const isSaved = savedIds.includes(a.id);
+    const isStocked = stockedIds.includes(a.id);
+    const isFollowing = followingIds.includes(a.user?.id);
+    const tags = (a.tags || []).map(t => `<span class="tag-chip" onclick="searchByTag('${t.name}')">${t.name}</span>`).join('');
+    const avatar = (a.user?.id || '?').slice(0, 2).toUpperCase();
+    const date = a.created_at ? new Date(a.created_at).toLocaleDateString('ja-JP') : '—';
+
+    return `
+      <div class="article-card${isSaved ? ' saved' : ''}" onclick="openArticle('${a.id}')">
+        <div class="article-meta">
+          <div class="article-author">
+            <div class="author-avatar">${avatar}</div>
+            <span>@${a.user?.id || 'anonymous'}</span>
+          </div>
+          <span>·</span>
+          <span>${date}</span>
+          ${a._cached ? `<span style="color:var(--color-accent);font-size:10px"><i class="fas fa-check-circle"></i> キャッシュ済</span>` : ''}
+        </div>
+        <div class="article-title">${escapeHtml(a.title || '(タイトルなし)')}</div>
+        ${tags ? `<div class="article-tags">${tags}</div>` : ''}
+        <div class="article-actions">
+          <button class="action-icon-btn${isStocked ? ' stocked' : ''}" onclick="event.stopPropagation(); toggleStock('${a.id}', this)" title="${isStocked ? 'ストック中（クリックで解除）' : 'ストック'}">
+            <i class="fas fa-layer-group"></i>
+          </button>
+          <button class="action-icon-btn${isSaved ? ' saved-act' : ''}" onclick="event.stopPropagation(); toggleSave('${a.id}', this)" title="保存">
+            <i class="fas fa-bookmark"></i>
+          </button>
+          <button class="action-icon-btn${isFollowing ? ' following-act' : ''}" onclick="event.stopPropagation(); toggleFollowUser('${a.user?.id}', this)" title="${isFollowing ? 'フォロー中（クリックで解除）' : 'フォロー'}">
+            <i class="fas fa-user-${isFollowing ? 'check' : 'plus'}"></i>
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function showSkeletons() {
+  const container = document.getElementById('articlesContainer');
+  container.innerHTML = Array.from({length: 6}, () => `
+    <div class="article-card" style="cursor:default;gap:10px">
+      <div class="skeleton" style="height:12px;width:120px"></div>
+      <div class="skeleton" style="height:18px;width:85%"></div>
+      <div class="skeleton" style="height:14px;width:60%"></div>
+      <div style="display:flex;gap:6px">
+        <div class="skeleton" style="height:20px;width:60px;border-radius:4px"></div>
+        <div class="skeleton" style="height:20px;width:80px;border-radius:4px"></div>
+      </div>
+    </div>`).join('');
+}
+
+function renderEmptyState(title, desc) {
+  document.getElementById('articlesContainer').innerHTML = `
+    <div class="empty-state">
+      <div class="empty-icon"><i class="fas fa-wifi-slash"></i></div>
+      <div class="empty-title">${title}</div>
+      <div class="empty-desc">${desc}</div>
+    </div>`;
+}
+
+// =====================================================
+// VIEWS
+// =====================================================
+function switchView(view, btn) {
+  // 記事取得中は保存済み・下書き・キューへの遷移をブロック
+  if (STATE.isFetching && ['saved', 'drafts', 'queue'].includes(view)) {
+    showToast('記事を取得中です。完了後に移動できます', 'warning');
+    return;
+  }
+
+  STATE.currentView = view;
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  const container = document.getElementById('articlesContainer');
+  const settingsView = document.getElementById('settingsView');
+  const profileView = document.getElementById('profileView');
+  const feedChips = document.getElementById('feedFilterChips');
+  const viewToggle = document.getElementById('viewToggle');
+
+  // filterBar は常に表示
+  // フィード専用UIはフィード以外で非表示
+  const isFeed = view === 'feed';
+  feedChips.style.display = isFeed ? '' : 'none';
+  viewToggle.style.display = isFeed ? '' : 'none';
+  document.getElementById('resultCount').textContent = '';
+
+  // Hide all secondary views, show articlesContainer by default
+  settingsView.classList.add('hidden');
+  profileView.classList.add('hidden');
+  container.classList.remove('hidden');
+
+  if (view === 'feed') {
+    if (STATE.isOnline) {
+      fetchArticles(STATE.searchQuery);
+    } else if (STATE.searchQuery && STATE.searchQuery.trim()) {
+      // オフライン時、検索クエリがあればローカル記事に対して検索を実行
+      loadOfflineArticles().then(() => performOfflineSearch(STATE.searchQuery));
+    } else {
+      loadOfflineArticles();
+    }
+  } else if (view === 'saved') {
+    renderSavedView();
+  } else if (view === 'drafts') {
+    renderDraftsView();
+  } else if (view === 'queue') {
+    renderQueueView();
+  } else if (view === 'profile') {
+    container.classList.add('hidden');
+    profileView.classList.remove('hidden');
+    renderProfileView();
+  } else if (view === 'settings') {
+    container.classList.add('hidden');
+    settingsView.classList.remove('hidden');
+    renderSettingsView();
+  }
+}
+
+async function renderSavedView() {
+  const container = document.getElementById('articlesContainer');
+  const articles = await dbGetAll('saved');
+  STATE.savedArticles = articles;
+
+  if (!articles.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon"><i class="fas fa-bookmark"></i></div>
+        <div class="empty-title">保存済み記事なし</div>
+        <div class="empty-desc">記事カード右上のブックマークアイコンで保存できます</div>
+      </div>`;
+    return;
+  }
+  renderArticles(articles);
+}
+
+async function renderDraftsView() {
+  const container = document.getElementById('articlesContainer');
+  const drafts = await dbGetAll('drafts');
+  STATE.drafts = drafts;
+
+  if (!drafts.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon"><i class="fas fa-file-alt"></i></div>
+        <div class="empty-title">下書きなし</div>
+        <div class="empty-desc">執筆ボタンから記事を作成できます</div>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = drafts.map(d => `
+    <div class="article-card pending" onclick="openDraft('${d.id}')">
+      <div class="article-meta">
+        <span style="color:var(--color-amber)"><i class="fas fa-file-alt"></i> 下書き</span>
+        <span>·</span>
+        <span>${new Date(d.savedAt).toLocaleDateString('ja-JP')}</span>
+      </div>
+      <div class="article-title">${escapeHtml(d.title || '(タイトルなし)')}</div>
+      <div class="article-tags">${(d.tags || '').split(',').filter(Boolean).map(t => `<span class="tag-chip">${t.trim()}</span>`).join('')}</div>
+      <div class="article-actions">
+        <button class="action-icon-btn" onclick="event.stopPropagation(); deleteDraft('${d.id}')" title="削除" style="color:var(--color-red)">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+async function renderQueueView() {
+  const container = document.getElementById('articlesContainer');
+  const queue = await dbGetAll('queue');
+  STATE.queue = queue;
+  updateQueueCount();
+
+  if (!queue.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon"><i class="fas fa-clock"></i></div>
+        <div class="empty-title">送信キューは空です</div>
+        <div class="empty-desc">オフライン時の投稿やストック操作がここに蓄積されます</div>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="padding:0 0 12px">
+      <div style="font-size:12px;color:var(--color-text-muted);margin-bottom:12px">
+        <i class="fas fa-info-circle" style="color:var(--color-blue);margin-right:4px"></i>
+        オンライン復帰後に自動的に送信されます
+      </div>
+      ${queue.map(q => `
+        <div class="queue-item">
+          <div class="queue-status pending"></div>
+          <div class="queue-info">
+            <div class="queue-action-name">${getActionLabel(q.type)}</div>
+            <div class="queue-target">${q.target || q.articleTitle || q.id}</div>
+          </div>
+          <span style="font-size:10px;color:var(--color-text-dim);font-family:var(--font-mono)">${formatTime(q.createdAt)}</span>
+          <button class="action-icon-btn" onclick="removeFromQueue('${q.id}')" style="color:var(--color-red)">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function renderSettingsView() {
+  const container = document.getElementById('settingsView');
+  container.innerHTML = `
+    <div style="max-width:480px">
+      <div style="font-size:18px;font-weight:700;margin-bottom:20px">設定</div>
+
+      <div class="article-card" style="margin-bottom:12px;cursor:default">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--color-text-muted)">
+          <i class="fas fa-database" style="color:var(--color-accent);margin-right:6px"></i>キャッシュ管理
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-ghost" onclick="fetchArticles()">
+            <i class="fas fa-sync-alt"></i> 今すぐキャッシュ更新
+          </button>
+          <button class="btn btn-ghost" onclick="clearCache()" style="color:var(--color-red);border-color:rgba(226,92,92,0.3)">
+            <i class="fas fa-trash-alt"></i> キャッシュをクリア
+          </button>
+        </div>
+      </div>
+
+      <div class="article-card" style="margin-bottom:12px;cursor:default">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--color-text-muted)">
+          <i class="fas fa-mobile-alt" style="color:var(--color-accent);margin-right:6px"></i>PWA インストール
+        </div>
+        <div style="font-size:12px;color:var(--color-text-muted);margin-bottom:10px">
+          このアプリをホーム画面に追加してオフラインでも使用できます
+        </div>
+        <button class="btn btn-primary" onclick="promptPWAInstall()">
+          <i class="fas fa-download"></i> ホーム画面に追加
+        </button>
+      </div>
+
+      <div class="article-card" style="cursor:default">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--color-text-muted)">
+          <i class="fas fa-info-circle" style="color:var(--color-accent);margin-right:6px"></i>ストレージ情報
+        </div>
+        <div id="storageInfo" style="font-size:12px;color:var(--color-text-muted);font-family:var(--font-mono)">
+          読み込み中...
+        </div>
+      </div>
+    </div>`;
+
+  loadStorageInfo();
+}
+
+async function loadStorageInfo() {
+  try {
+    const articles = await dbGetAll('articles');
+    const saved = await dbGetAll('saved');
+    const drafts = await dbGetAll('drafts');
+    const queue = await dbGetAll('queue');
+    const el = document.getElementById('storageInfo');
+    if (el) {
+      el.innerHTML = `
+        キャッシュ記事: ${articles.length}件<br>
+        保存済み記事: ${saved.length}件<br>
+        下書き: ${drafts.length}件<br>
+        送信キュー: ${queue.length}件<br>
+        LS使用量: ${(JSON.stringify(localStorage).length / 1024).toFixed(1)} KB`;
+    }
+  } catch(e) {}
+}
+
+// =====================================================
+// PROFILE VIEW
+// =====================================================
+
+// 共通ページネーション取得ヘルパー
+async function fetchAllPages(baseUrl, token, perPage = 100, maxPages = 10) {
+  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+  let all = [];
+  for (let page = 1; page <= maxPages; page++) {
+    const sep = baseUrl.includes('?') ? '&' : '?';
+    const res = await fetch(`${baseUrl}${sep}per_page=${perPage}&page=${page}`, { headers });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const batch = await res.json();
+    all = all.concat(batch);
+    if (batch.length < perPage) break;
+  }
+  return all;
+}
+const PROFILE_STATE = {
+  currentTab: 'myArticles',
+  myArticles: null,
+  likedArticles: null,
+  following: null,
+  followers: null,
+};
+
+async function renderProfileView() {
+  if (!STATE.token) {
+    document.getElementById('profileHeader').innerHTML = `
+      <div class="empty-state" style="padding:32px 20px">
+        <div class="empty-icon"><i class="fas fa-user-slash"></i></div>
+        <div class="empty-title">ログインが必要です</div>
+      </div>`;
+    return;
+  }
+
+  // Show loading skeleton in header while fetching
+  document.getElementById('profileHeader').innerHTML = `
+    <div class="profile-hero">
+      <div class="skeleton" style="width:72px;height:72px;border-radius:18px;flex-shrink:0"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+        <div class="skeleton" style="height:20px;width:160px"></div>
+        <div class="skeleton" style="height:13px;width:100px"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:20px;padding-bottom:16px">
+      ${Array.from({length:4}, () => `<div class="skeleton" style="height:40px;width:60px;border-radius:8px"></div>`).join('')}
+    </div>`;
+
+  // Always fetch fresh user info when online
+  if (STATE.isOnline) {
+    try {
+      const res = await fetch('https://qiita.com/api/v2/authenticated_user', {
+        headers: { 'Authorization': `Bearer ${STATE.token}` }
+      });
+      if (res.ok) {
+        STATE.user = await res.json();
+      } else if (res.status === 401) {
+        document.getElementById('profileHeader').innerHTML = `
+          <div class="empty-state" style="padding:32px 20px">
+            <div class="empty-icon"><i class="fas fa-exclamation-circle" style="color:var(--color-red)"></i></div>
+            <div class="empty-title">認証エラー</div>
+            <div class="empty-desc">トークンが無効です。再ログインしてください。</div>
+          </div>`;
+        return;
+      }
+    } catch(e) {
+      // Network error — fall through to cached user
+    }
+  }
+
+  if (!STATE.user) {
+    document.getElementById('profileHeader').innerHTML = `
+      <div class="empty-state" style="padding:32px 20px">
+        <div class="empty-icon"><i class="fas fa-wifi-slash"></i></div>
+        <div class="empty-title">ユーザー情報を取得できません</div>
+        <div class="empty-desc">オンラインの状態でプロフィールを開いてください。</div>
+      </div>`;
+    return;
+  }
+
+  renderProfileHeader(STATE.user);
+
+  // Always reset article/liked cache so newly posted articles appear immediately
+  PROFILE_STATE.myArticles = null;
+  PROFILE_STATE.likedArticles = null;
+
+  // Load default tab (always force-refresh myArticles on first open)
+  switchProfileTab(PROFILE_STATE.currentTab);
+}
+
+function renderProfileHeader(user) {
+  if (!user) return;
+  const el = document.getElementById('profileHeader');
+  const avatarHtml = user.profile_image_url
+    ? `<img src="${escapeHtml(user.profile_image_url)}" alt="${escapeHtml(user.id)}" onerror="this.parentElement.textContent='${(user.id||'?').slice(0,2).toUpperCase()}';">`
+    : (user.id || '?').slice(0, 2).toUpperCase();
+
+  el.innerHTML = `
+    <div class="profile-hero">
+      <div class="profile-avatar-lg">${avatarHtml}</div>
+      <div class="profile-info">
+        <div class="profile-id">@${escapeHtml(user.id || '—')}</div>
+        ${user.name ? `<div class="profile-name">${escapeHtml(user.name)}</div>` : ''}
+        ${user.description ? `<div class="profile-description">${escapeHtml(user.description)}</div>` : ''}
+      </div>
+    </div>
+    <div class="profile-stats">
+      <div class="profile-stat" onclick="switchProfileTab('myArticles', null)" id="pstat-myArticles">
+        <div class="profile-stat-num">${user.items_count ?? '—'}</div>
+        <div class="profile-stat-label">記事</div>
+      </div>
+      <div class="profile-stat" onclick="switchProfileTab('likedArticles', null)" id="pstat-likedArticles">
+        <div class="profile-stat-num" id="profileStockCount">—</div>
+        <div class="profile-stat-label">ストック</div>
+      </div>
+      <div class="profile-stat" onclick="switchProfileTab('following', null)" id="pstat-following">
+        <div class="profile-stat-num">${user.followees_count ?? '—'}</div>
+        <div class="profile-stat-label">フォロー</div>
+      </div>
+      <div class="profile-stat" onclick="switchProfileTab('followers', null)" id="pstat-followers">
+        <div class="profile-stat-num">${user.followers_count ?? '—'}</div>
+        <div class="profile-stat-label">フォロワー</div>
+      </div>
+    </div>`;
+}
+
+async function switchProfileTab(tab, btn) {
+  PROFILE_STATE.currentTab = tab;
+
+  // Update tab buttons
+  document.querySelectorAll('#profileTabs .tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) {
+    btn.classList.add('active');
+  } else {
+    const target = document.querySelector(`#profileTabs [data-ptab="${tab}"]`);
+    if (target) target.classList.add('active');
+  }
+
+  // Update stat highlights
+  document.querySelectorAll('.profile-stat').forEach(s => s.classList.remove('active'));
+  const statEl = document.getElementById(`pstat-${tab}`);
+  if (statEl) statEl.classList.add('active');
+
+  const content = document.getElementById('profileTabContent');
+  content.innerHTML = `<div class="empty-state"><div class="empty-icon"><div class="skeleton" style="width:40px;height:40px;border-radius:10px"></div></div><div class="skeleton" style="height:14px;width:120px;margin-top:8px"></div></div>`;
+
+  if (!STATE.isOnline) {
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon"><i class="fas fa-wifi-slash"></i></div><div class="empty-title">オフライン</div><div class="empty-desc">プロフィールデータはオンライン時のみ取得できます</div></div>`;
+    return;
+  }
+
+  if (!STATE.token) {
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon"><i class="fas fa-key"></i></div><div class="empty-title">ログインが必要です</div></div>`;
+    return;
+  }
+
+  if (!STATE.user) {
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon"><i class="fas fa-spinner fa-spin"></i></div><div class="empty-title">ユーザー情報を読み込み中...</div></div>`;
+    return;
+  }
+
+  const userId = STATE.user.id;
+
+  try {
+    if (tab === 'myArticles') {
+      if (!PROFILE_STATE.myArticles) {
+        PROFILE_STATE.myArticles = await fetchAllPages(
+          'https://qiita.com/api/v2/authenticated_user/items', STATE.token
+        );
+      }
+      renderMyArticles(PROFILE_STATE.myArticles);
+
+    } else if (tab === 'likedArticles') {
+      if (!PROFILE_STATE.likedArticles) {
+        // Qiita API にいいねした記事一覧エンドポイントは存在しないため
+        // ストック（GET /api/v2/users/:id/stocks）を使用する
+        PROFILE_STATE.likedArticles = await fetchAllPages(
+          `https://qiita.com/api/v2/users/${userId}/stocks`, STATE.token
+        );
+        // ヘッダーのストック数を更新
+        const countEl = document.getElementById('profileStockCount');
+        if (countEl) countEl.textContent = PROFILE_STATE.likedArticles.length;
+
+        // 取得したストック済み記事IDを localStorage（qiita_stocked）に同期する
+        // → ストックボタンの色（青）が正しく反映されるようにする
+        const fetchedIds = PROFILE_STATE.likedArticles.map(a => a.id);
+        localStorage.setItem('qiita_stocked', JSON.stringify(fetchedIds));
+      }
+      renderLikedArticles(PROFILE_STATE.likedArticles);
+
+    } else if (tab === 'following') {
+      if (!PROFILE_STATE.following) {
+        PROFILE_STATE.following = await fetchAllPages(
+          `https://qiita.com/api/v2/users/${userId}/followees`, STATE.token
+        );
+      }
+      renderUserList(PROFILE_STATE.following, 'following');
+
+    } else if (tab === 'followers') {
+      if (!PROFILE_STATE.followers) {
+        PROFILE_STATE.followers = await fetchAllPages(
+          `https://qiita.com/api/v2/users/${userId}/followers`, STATE.token
+        );
+      }
+      renderUserList(PROFILE_STATE.followers, 'followers');
+    }
+  } catch(e) {
+    console.error('Profile tab error:', e);
+    content.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon"><i class="fas fa-exclamation-circle" style="color:var(--color-red)"></i></div>
+        <div class="empty-title">データ取得に失敗</div>
+        <div class="empty-desc" style="font-family:var(--font-mono);font-size:11px">${escapeHtml(e.message)}</div>
+        <button class="btn btn-ghost" style="margin-top:12px" onclick="PROFILE_STATE.myArticles=null;PROFILE_STATE.likedArticles=null;PROFILE_STATE.following=null;PROFILE_STATE.followers=null;switchProfileTab('${tab}')">
+          <i class="fas fa-redo"></i> 再試行
+        </button>
+      </div>`;
+  }
+}
+
+function renderMyArticles(articles) {
+  const content = document.getElementById('profileTabContent');
+  if (!articles.length) {
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon"><i class="fas fa-newspaper"></i></div><div class="empty-title">記事なし</div><div class="empty-desc">まだ記事を投稿していません</div></div>`;
+    return;
+  }
+
+  content.innerHTML = articles.map(a => {
+    const tags = (a.tags || []).map(t => `<span class="tag-chip">${escapeHtml(t.name)}</span>`).join('');
+    const date = a.created_at ? new Date(a.created_at).toLocaleDateString('ja-JP') : '—';
+    const updatedAt = a.updated_at ? new Date(a.updated_at).toLocaleDateString('ja-JP') : null;
+    return `
+      <div class="article-card" onclick="openArticle('${a.id}')">
+        <div class="article-meta">
+          <span style="color:var(--color-accent);font-size:10px"><i class="fas fa-user-edit"></i> 自分の記事</span>
+          <span>·</span>
+          <span>${date}</span>
+          ${updatedAt && updatedAt !== date ? `<span>（更新: ${updatedAt}）</span>` : ''}
+        </div>
+        <div class="article-title">${escapeHtml(a.title || '(タイトルなし)')}</div>
+        ${tags ? `<div class="article-tags">${tags}</div>` : ''}
+        <div class="article-stats">
+          <div class="stat-item" style="color:${a.private ? 'var(--color-amber)' : 'var(--color-text-dim)'}">
+            <i class="fas fa-${a.private ? 'lock' : 'globe'}"></i> ${a.private ? '非公開' : '公開'}
+          </div>
+        </div>
+        <div class="article-actions">
+          <button class="action-icon-btn" style="color:var(--color-blue)"
+            onclick="event.stopPropagation(); openEditModal('${a.id}')" title="編集">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="action-icon-btn" style="color:var(--color-red)"
+            onclick="event.stopPropagation(); openDeleteModal('${a.id}', '${escapeHtml(a.title || '').replace(/'/g, "\\'")}', this)" title="削除">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Make articles findable for reader modal
+  STATE.articles = [...STATE.articles.filter(x => !articles.find(a => a.id === x.id)), ...articles];
+}
+
+function renderLikedArticles(articles) {
+  const content = document.getElementById('profileTabContent');
+  if (!articles.length) {
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon"><i class="fas fa-bookmark"></i></div><div class="empty-title">ストック済み記事なし</div><div class="empty-desc">Qiitaでストックした記事がここに表示されます</div></div>`;
+    return;
+  }
+  // Merge liked articles into STATE for reader
+  STATE.articles = [...STATE.articles.filter(x => !articles.find(a => a.id === x.id)), ...articles];
+  renderArticlesInto(content, articles);
+}
+
+function renderArticlesInto(container, articles) {
+  const savedIds = STATE.savedArticles.map(s => s.id);
+  const stockedIds = JSON.parse(localStorage.getItem('qiita_stocked') || '[]');
+  container.innerHTML = articles.map(a => {
+    const isSaved = savedIds.includes(a.id);
+    const isStocked = stockedIds.includes(a.id);
+    const tags = (a.tags || []).map(t => `<span class="tag-chip">${escapeHtml(t.name)}</span>`).join('');
+    const date = a.created_at ? new Date(a.created_at).toLocaleDateString('ja-JP') : '—';
+    const avatar = (a.user?.id || '?').slice(0, 2).toUpperCase();
+    return `
+      <div class="article-card${isSaved ? ' saved' : ''}" onclick="openArticle('${a.id}')">
+        <div class="article-meta">
+          <div class="article-author">
+            <div class="author-avatar">${avatar}</div>
+            <span>@${escapeHtml(a.user?.id || 'anonymous')}</span>
+          </div>
+          <span>·</span><span>${date}</span>
+        </div>
+        <div class="article-title">${escapeHtml(a.title || '(タイトルなし)')}</div>
+        ${tags ? `<div class="article-tags">${tags}</div>` : ''}
+        <div class="article-actions">
+          <button class="action-icon-btn${isStocked ? ' stocked' : ''}" onclick="event.stopPropagation(); toggleStock('${a.id}', this)" title="${isStocked ? 'ストック中（クリックで解除）' : 'ストック'}">
+            <i class="fas fa-layer-group"></i>
+          </button>
+          <button class="action-icon-btn${isSaved ? ' saved-act' : ''}" onclick="event.stopPropagation(); toggleSave('${a.id}', this)" title="保存">
+            <i class="fas fa-bookmark"></i>
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderUserList(users, type) {
+  const content = document.getElementById('profileTabContent');
+  if (!users.length) {
+    const labels = { following: 'フォロー中のユーザーなし', followers: 'フォロワーなし' };
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon"><i class="fas fa-users"></i></div><div class="empty-title">${labels[type] || 'ユーザーなし'}</div></div>`;
+    return;
+  }
+
+  content.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px">` + users.map(u => {
+    const avatarHtml = u.profile_image_url
+      ? `<img src="${escapeHtml(u.profile_image_url)}" alt="${escapeHtml(u.id)}" onerror="this.parentElement.textContent='${(u.id||'?').slice(0,2).toUpperCase()}';">`
+      : (u.id || '?').slice(0, 2).toUpperCase();
+    return `
+      <div class="user-card">
+        <div class="user-card-avatar">${avatarHtml}</div>
+        <div class="user-card-info">
+          <div class="user-card-id">@${escapeHtml(u.id)}</div>
+          <div class="user-card-desc">${escapeHtml(u.name || u.description || `記事 ${u.items_count || 0}件・フォロワー ${u.followers_count || 0}人`)}</div>
+        </div>
+        ${type === 'following' ? `
+        <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px;color:var(--color-red);border-color:rgba(226,92,92,0.3)"
+          onclick="unfollowUser('${escapeHtml(u.id)}', this)">
+          <i class="fas fa-user-minus"></i> フォロー解除
+        </button>` : `
+        <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px"
+          onclick="followUser('${escapeHtml(u.id)}')">
+          <i class="fas fa-user-plus"></i> フォロー
+        </button>`}
+      </div>`;
+  }).join('') + `</div>`;
+}
+
+async function unfollowUser(userId, btn) {
+  if (!STATE.token) { showToast('トークンが必要です', 'error'); return; }
+  try {
+    const res = await fetch(`https://qiita.com/api/v2/users/${userId}/following`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${STATE.token}` }
+    });
+    if (!res.ok && res.status !== 204) throw new Error(`${res.status}`);
+    showToast(`@${userId} のフォローを解除しました`, 'info');
+    btn.closest('.user-card').style.opacity = '0.4';
+    btn.disabled = true;
+    btn.textContent = '解除済み';
+    // Invalidate cache
+    PROFILE_STATE.following = null;
+    if (STATE.user) STATE.user.followees_count = Math.max(0, (STATE.user.followees_count || 1) - 1);
+    renderProfileHeader(STATE.user);
+    // ★ localStorageも更新して記事欄のボタンと同期する
+    const ids = JSON.parse(localStorage.getItem('qiita_following') || '[]').filter(id => id !== userId);
+    localStorage.setItem('qiita_following', JSON.stringify(ids));
+  } catch(e) {
+    showToast('フォロー解除に失敗しました: ' + e.message, 'error');
+  }
+}
+
+// =====================================================
+// EDIT / DELETE ARTICLE
+// =====================================================
+async function openEditModal(articleId) {
+  if (!STATE.token) { showToast('編集にはトークンが必要です', 'error'); return; }
+
+  // Try to find article in memory
+  let article = (PROFILE_STATE.myArticles || []).find(a => a.id === articleId) ||
+                STATE.articles.find(a => a.id === articleId);
+
+  // Fetch full article if not cached
+  if (!article || !article.body) {
+    try {
+      const res = await fetch(`https://qiita.com/api/v2/items/${articleId}`, {
+        headers: { 'Authorization': `Bearer ${STATE.token}` }
+      });
+      if (res.ok) article = await res.json();
+    } catch(e) {
+      showToast('記事の取得に失敗しました', 'error'); return;
+    }
+  }
+
+  document.getElementById('editArticleId').value = articleId;
+  document.getElementById('editArticleTitle').value = article.title || '';
+  document.getElementById('editArticleBody').value = article.body || '';
+  document.getElementById('editArticleTags').value = (article.tags || []).map(t => t.name).join(', ');
+  openModal('editModal');
+}
+
+async function updateArticle() {
+  const articleId = document.getElementById('editArticleId').value;
+  const title = document.getElementById('editArticleTitle').value.trim();
+  const body = document.getElementById('editArticleBody').value;
+  const tagsRaw = document.getElementById('editArticleTags').value;
+
+  if (!title) { showToast('タイトルを入力してください', 'error'); return; }
+  if (!STATE.token) { showToast('トークンが必要です', 'error'); return; }
+
+  const btn = document.getElementById('updateBtn');
+  btn.disabled = true;
+  document.getElementById('updateBtnText').textContent = '保存中...';
+
+  const tags = tagsRaw.split(',').filter(Boolean).map(t => ({ name: t.trim(), versions: [] }));
+
+  try {
+    const res = await fetch(`https://qiita.com/api/v2/items/${articleId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${STATE.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ title, body, tags })
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    const updated = await res.json();
+
+    // Update local cache
+    if (PROFILE_STATE.myArticles) {
+      const idx = PROFILE_STATE.myArticles.findIndex(a => a.id === articleId);
+      if (idx !== -1) PROFILE_STATE.myArticles[idx] = updated;
+    }
+    const sidx = STATE.articles.findIndex(a => a.id === articleId);
+    if (sidx !== -1) STATE.articles[sidx] = updated;
+
+    showToast('記事を更新しました', 'success');
+    closeModal('editModal');
+    // Re-render current profile tab
+    renderMyArticles(PROFILE_STATE.myArticles || []);
+  } catch(e) {
+    showToast('更新に失敗しました: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('updateBtnText').textContent = '変更を保存';
+  }
+}
+
+let _deleteTargetId = null;
+
+function openDeleteModal(articleId, title, triggerBtn) {
+  _deleteTargetId = articleId;
+  document.getElementById('deleteArticleTitle').textContent = title || articleId;
+  openModal('deleteModal');
+}
+
+async function confirmDeleteArticle() {
+  if (!_deleteTargetId || !STATE.token) return;
+  const btn = document.getElementById('deleteConfirmBtn');
+  btn.disabled = true;
+  document.getElementById('deleteBtnText').textContent = '削除中...';
+
+  try {
+    const res = await fetch(`https://qiita.com/api/v2/items/${_deleteTargetId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${STATE.token}` }
+    });
+    if (!res.ok && res.status !== 204) throw new Error(`${res.status}`);
+
+    // Remove from local caches
+    if (PROFILE_STATE.myArticles) {
+      PROFILE_STATE.myArticles = PROFILE_STATE.myArticles.filter(a => a.id !== _deleteTargetId);
+    }
+    STATE.articles = STATE.articles.filter(a => a.id !== _deleteTargetId);
+    await dbDelete('articles', _deleteTargetId);
+    await dbDelete('saved', _deleteTargetId);
+
+    showToast('記事を削除しました', 'success');
+    closeModal('deleteModal');
+    renderMyArticles(PROFILE_STATE.myArticles || []);
+
+    // Update article count
+    if (STATE.user) {
+      STATE.user.items_count = Math.max(0, (STATE.user.items_count || 1) - 1);
+      renderProfileHeader(STATE.user);
+    }
+  } catch(e) {
+    showToast('削除に失敗しました: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('deleteBtnText').textContent = '削除する';
+    _deleteTargetId = null;
+  }
+}
+
+function insertEditMd(before, after) {
+  const ta = document.getElementById('editArticleBody');
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const selected = ta.value.substring(start, end);
+  const newText = before + (selected || 'テキスト') + after;
+  ta.setRangeText(newText, start, end, 'select');
+  ta.focus();
+}
+
+// =====================================================
+// LIKE / SAVE / FOLLOW
+// =====================================================
+async function toggleStock(articleId, btn) {
+  const stockedIds = JSON.parse(localStorage.getItem('qiita_stocked') || '[]');
+  const isStocked = stockedIds.includes(articleId);
+
+  if (!STATE.isOnline) {
+    // Queue action
+    const action = { id: Date.now().toString(), type: isStocked ? 'unstock' : 'stock', articleId, target: `記事 ${articleId.slice(0,8)}...`, createdAt: new Date().toISOString() };
+    await dbPut('queue', action);
+    addPendingAction();
+    showToast(`ストック操作をキューに追加しました`, 'warning');
+  } else {
+    if (!STATE.token) { showToast('ストックにはトークンが必要です', 'error'); return; }
+    try {
+      const method = isStocked ? 'DELETE' : 'PUT';
+      const res = await fetch(`https://qiita.com/api/v2/items/${articleId}/stock`, {
+        method, headers: { 'Authorization': `Bearer ${STATE.token}` }
+      });
+      if (!res.ok && res.status !== 204) throw new Error(`${res.status}`);
+      showToast(isStocked ? 'ストックを解除しました' : 'ストックしました', 'success');
+    } catch(e) {
+      showToast('ストック操作に失敗しました', 'error'); return;
+    }
+  }
+
+  // Toggle locally
+  if (isStocked) {
+    const idx = stockedIds.indexOf(articleId);
+    if (idx > -1) stockedIds.splice(idx, 1);
+    btn.classList.remove('stocked');
+  } else {
+    stockedIds.push(articleId);
+    btn.classList.add('stocked');
+  }
+  localStorage.setItem('qiita_stocked', JSON.stringify(stockedIds));
+  // プロフィールのストックキャッシュを無効化（次回タブ表示時に再取得）
+  PROFILE_STATE.likedArticles = null;
+}
+
+async function toggleSave(articleId, btn) {
+  const article = STATE.articles.find(a => a.id === articleId) || await dbGet('saved', articleId);
+  if (!article) return;
+
+  const saved = await dbGet('saved', articleId);
+  if (saved) {
+    await dbDelete('saved', articleId);
+    btn.classList.remove('saved-act');
+    btn.closest('.article-card').classList.remove('saved');
+    showToast('保存を解除しました', 'info');
+  } else {
+    await dbPut('saved', { ...article, _savedAt: new Date().toISOString() });
+    btn.classList.add('saved-act');
+    btn.closest('.article-card').classList.add('saved');
+    showToast('記事を保存しました', 'success');
+  }
+  await refreshSavedList();
+  updateSavedCount();
+}
+
+async function toggleFollowUser(userId, btn) {
+  if (!userId || userId === 'undefined') return;
+
+  const followingIds = JSON.parse(localStorage.getItem('qiita_following') || '[]');
+  const isFollowing = followingIds.includes(userId);
+
+  if (!STATE.isOnline) {
+    // Queue the action
+    const type = isFollowing ? 'unfollow_user' : 'follow_user';
+    const action = { id: Date.now().toString(), type, userId, target: `@${userId}`, createdAt: new Date().toISOString() };
+    await dbPut('queue', action);
+    addPendingAction();
+    // Toggle locally
+    _applyFollowToggle(userId, !isFollowing, btn, followingIds);
+    showToast(`@${userId} の${isFollowing ? 'フォロー解除' : 'フォロー'}をキューに追加しました`, 'warning');
+    return;
+  }
+
+  if (!STATE.token) { showToast('フォローにはトークンが必要です', 'error'); return; }
+
+  // Optimistic UI update
+  _applyFollowToggle(userId, !isFollowing, btn, followingIds);
+
+  try {
+    const method = isFollowing ? 'DELETE' : 'PUT';
+    const res = await fetch(`https://qiita.com/api/v2/users/${userId}/following`, {
+      method, headers: { 'Authorization': `Bearer ${STATE.token}` }
+    });
+
+    // 成功ステータス: 200, 204
+    // 409 = すでにフォロー済み（PUT重複）→ フォロー状態として扱う
+    // 404 = すでに解除済み（DELETE対象なし）→ 未フォロー状態として扱う
+    if (res.status === 409) {
+      // サーバー側はフォロー済み → localStorageをフォロー状態に修正してUIも合わせる
+      _applyFollowToggle(userId, true, btn, JSON.parse(localStorage.getItem('qiita_following') || '[]'));
+      showToast(`@${userId} はすでにフォロー中です`, 'info');
+      PROFILE_STATE.following = null;
+      return;
+    }
+    if (res.status === 404) {
+      // サーバー側は未フォロー → localStorageを未フォロー状態に修正してUIも合わせる
+      _applyFollowToggle(userId, false, btn, JSON.parse(localStorage.getItem('qiita_following') || '[]'));
+      showToast(`@${userId} はフォローしていません`, 'info');
+      PROFILE_STATE.following = null;
+      return;
+    }
+    if (!res.ok && res.status !== 204) throw new Error(`${res.status}`);
+
+    showToast(isFollowing ? `@${userId} のフォローを解除しました` : `@${userId} をフォローしました`, 'success');
+    PROFILE_STATE.following = null;
+  } catch(e) {
+    // Rollback on failure
+    _applyFollowToggle(userId, isFollowing, btn, JSON.parse(localStorage.getItem('qiita_following') || '[]'));
+    showToast('フォロー操作に失敗しました: ' + e.message, 'error');
+  }
+}
+
+// Shared helper — updates localStorage and button appearance
+function _applyFollowToggle(userId, nowFollowing, btn, currentIds) {
+  // Update localStorage
+  let ids = [...currentIds];
+  if (nowFollowing) {
+    if (!ids.includes(userId)) ids.push(userId);
+  } else {
+    ids = ids.filter(id => id !== userId);
+  }
+  localStorage.setItem('qiita_following', JSON.stringify(ids));
+
+  // Update button if provided
+  if (!btn) return;
+  if (nowFollowing) {
+    btn.classList.add('following-act');
+    btn.title = 'フォロー中（クリックで解除）';
+    btn.querySelector('i').className = 'fas fa-user-check';
+  } else {
+    btn.classList.remove('following-act');
+    btn.title = 'フォロー';
+    btn.querySelector('i').className = 'fas fa-user-plus';
+  }
+}
+
+// Keep old name as alias for profile-panel "フォロー" buttons
+function followUser(userId) {
+  // Find the button in the currently rendered user list (profile panel)
+  toggleFollowUser(userId, null);
+}
+
+function searchByTag(tag) {
+  // フィード以外のビューではタグクリックによる画面遷移を行わない
+  if (STATE.currentView !== 'feed') {
+    showToast('タグ検索はフィード画面で使用できます', 'info');
+    return;
+  }
+  document.getElementById('globalSearch').value = tag;
+  STATE.currentFilter = 'tag';
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  document.querySelector('[data-filter="tag"]').classList.add('active');
+  performSearch(tag);
+}
+
+// =====================================================
+// ARTICLE READER
+// =====================================================
+function openArticle(articleId) {
+  const article = STATE.articles.find(a => a.id === articleId);
+  if (!article) return;
+  STATE.currentArticle = article;
+
+  document.getElementById('readerTitle').textContent = article.title || '(タイトルなし)';
+  document.getElementById('readerMeta').textContent =
+    `@${article.user?.id || '—'} · ${article.created_at ? new Date(article.created_at).toLocaleDateString('ja-JP') : '—'}`;
+
+  // Simple markdown-to-HTML renderer
+  const html = renderMarkdown(article.body || '内容なし');
+  document.getElementById('readerBody').innerHTML = html;
+
+  const stockedIds = JSON.parse(localStorage.getItem('qiita_stocked') || '[]');
+  const isStocked = stockedIds.includes(articleId);
+  document.getElementById('readerStockBtn').className = `action-icon-btn${isStocked ? ' stocked' : ''}`;
+
+  openModal('readerModal');
+}
+
+function toggleStockFromReader() {
+  if (!STATE.currentArticle) return;
+  const btn = document.getElementById('readerStockBtn');
+  toggleStock(STATE.currentArticle.id, btn);
+}
+
+async function toggleSaveFromReader() {
+  if (!STATE.currentArticle) return;
+  const article = STATE.currentArticle;
+  const saved = await dbGet('saved', article.id);
+  const btn = document.getElementById('readerSaveBtn');
+  if (saved) {
+    await dbDelete('saved', article.id);
+    btn.classList.remove('saved-act');
+    showToast('保存を解除しました', 'info');
+  } else {
+    await dbPut('saved', { ...article, _savedAt: new Date().toISOString() });
+    btn.classList.add('saved-act');
+    showToast('記事を保存しました', 'success');
+  }
+  await refreshSavedList();
+  updateSavedCount();
+}
+
+// =====================================================
+// SIMPLE MARKDOWN RENDERER
+// =====================================================
+function renderMarkdown(md) {
+  // 1. コードブロックを先に退避（内部を変換しないため）
+  const codeBlocks = [];
+  let html = md.replace(/```([^\n]*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+    const escaped = escapeHtml(code.replace(/\n$/, ''));
+    const cls = lang ? ` class="language-${escapeHtml(lang)}"` : '';
+    codeBlocks.push(`<pre><code${cls}>${escaped}</code></pre>`);
+    return `\x00CODE${codeBlocks.length - 1}\x00`;
+  });
+
+  // 2. インラインコードを退避
+  const inlineCodes = [];
+  html = html.replace(/`([^`]+)`/g, (_, code) => {
+    inlineCodes.push(`<code>${escapeHtml(code)}</code>`);
+    return `\x00INLINE${inlineCodes.length - 1}\x00`;
+  });
+
+  // 3. HTML エスケープ（コード退避後）
+  html = escapeHtml(html);
+
+  // 4. 見出し（行頭マッチ）
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm,  '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm,   '<h1>$1</h1>');
+
+  // 5. 区切り線（--- / *** / ___）
+  html = html.replace(/^(?:---+|\*\*\*+|___+)$/gm, '<hr>');
+
+  // 6. 引用
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+  html = html.replace(/(<\/blockquote>\n<blockquote>)/g, '\n');
+
+  // 7. 箇条書きリスト（連続行をまとめる）
+  html = html.replace(/((?:^- .+\n?)+)/gm, match => {
+    const items = match.trim().split('\n').map(line =>
+      `<li>${line.replace(/^- /, '')}</li>`
+    ).join('');
+    return `<ul>${items}</ul>`;
+  });
+
+  // 9. インライン装飾
+  html = html.replace(/\*\*(.+?)\*\*/g,  '<strong>$1</strong>');
+  html = html.replace(/~~(.+?)~~/g,       '<del>$1</del>');
+  html = html.replace(/\*(.+?)\*/g,       '<em>$1</em>');
+  html = html.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+  // 10. 段落（空行で区切る）
+  const blocks = html.split(/\n{2,}/);
+  html = blocks.map(block => {
+    block = block.trim();
+    if (!block) return '';
+    // ブロック要素はそのまま
+    if (/^<(h[1-6]|ul|li|pre|blockquote|hr|div)/.test(block)) return block;
+    // 単一改行を <br> に
+    return '<p>' + block.replace(/\n/g, '<br>') + '</p>';
+  }).join('\n');
+
+  // 11. コード・インラインコードを復元
+  html = html.replace(/\x00CODE(\d+)\x00/g,   (_, i) => codeBlocks[i]);
+  html = html.replace(/\x00INLINE(\d+)\x00/g, (_, i) => inlineCodes[i]);
+
+  return html;
+}
+
+// =====================================================
+// ARTICLE EDITOR
+// =====================================================
+async function saveDraft() {
+  const title = document.getElementById('articleTitle').value.trim();
+  const body = document.getElementById('articleBody').value;
+  const tags = getArticleTags().join(',');
+
+  if (!title && !body) { showToast('内容を入力してください', 'error'); return; }
+
+  const draft = {
+    id: Date.now().toString(),
+    title: title || '(タイトルなし)',
+    body,
+    tags,
+    savedAt: new Date().toISOString(),
+    type: 'draft'
+  };
+
+  await dbPut('drafts', draft);
+  showToast('下書きを保存しました', 'success');
+  updateDraftsCount();
+  closeModal('editorModal');
+}
+
+async function publishArticle() {
+  const title = document.getElementById('articleTitle').value.trim();
+  const body = document.getElementById('articleBody').value;
+  const tagList = getArticleTags();
+  const tagsRaw = tagList.join(',');
+
+  if (!title) { showToast('タイトルを入力してください', 'error'); return; }
+  if (!body) { showToast('本文を入力してください', 'error'); return; }
+
+  const tags = tagList.map(t => ({ name: t, versions: [] }));
+
+  if (!STATE.isOnline) {
+    const item = { id: Date.now().toString(), type: 'post_article', title, body, tags: tagsRaw, target: title, articleTitle: title, createdAt: new Date().toISOString() };
+    await dbPut('queue', item);
+    addPendingAction();
+    showToast('オフライン: 投稿待ちフォルダに保存しました', 'warning');
+    updateQueueCount();
+    closeModal('editorModal');
+    return;
+  }
+
+  if (!STATE.token) { showToast('投稿にはアクセストークンが必要です', 'error'); return; }
+
+  document.getElementById('publishBtn').disabled = true;
+  document.getElementById('publishBtnText').textContent = '投稿中...';
+
+  try {
+    const res = await fetch('https://qiita.com/api/v2/items', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${STATE.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ title, body, tags, private: false })
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    showToast('記事を投稿しました！', 'success');
+    closeModal('editorModal');
+    fetchArticles();
+  } catch(e) {
+    showToast('投稿に失敗しました: ' + e.message, 'error');
+  } finally {
+    document.getElementById('publishBtn').disabled = false;
+    document.getElementById('publishBtnText').textContent = '投稿する';
+  }
+}
+
+function openDraft(draftId) {
+  const draft = STATE.drafts.find(d => d.id === draftId);
+  if (!draft) return;
+  document.getElementById('articleTitle').value = draft.title || '';
+  document.getElementById('articleBody').value = draft.body || '';
+  // draft.tags はカンマ区切り文字列
+  const tags = (draft.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+  initArticleTagInput(tags);
+  setEditorMode('split');
+  livePreview();
+  openModal('editorModal');
+}
+
+async function deleteDraft(draftId) {
+  await dbDelete('drafts', draftId);
+  showToast('下書きを削除しました', 'info');
+  renderDraftsView();
+  updateDraftsCount();
+}
+
+function insertMd(before, after) {
+  const ta = document.getElementById('articleBody');
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const selected = ta.value.substring(start, end);
+  const newText = before + (selected || 'テキスト') + after;
+  ta.setRangeText(newText, start, end, 'select');
+  ta.focus();
+}
+
+// =====================================================
+// SYNC PENDING ACTIONS
+// =====================================================
+async function syncPendingActions() {
+  if (!STATE.isOnline || !STATE.token) return;
+  const queue = await dbGetAll('queue');
+  if (!queue.length) return;
+
+  let synced = 0;
+  for (const item of queue) {
+    try {
+      if (item.type === 'stock') {
+        await fetch(`https://qiita.com/api/v2/items/${item.articleId}/stock`, {
+          method: 'PUT', headers: { 'Authorization': `Bearer ${STATE.token}` }
+        });
+      } else if (item.type === 'unstock') {
+        await fetch(`https://qiita.com/api/v2/items/${item.articleId}/stock`, {
+          method: 'DELETE', headers: { 'Authorization': `Bearer ${STATE.token}` }
+        });
+      } else if (item.type === 'follow_user') {
+        await fetch(`https://qiita.com/api/v2/users/${item.userId}/following`, {
+          method: 'PUT', headers: { 'Authorization': `Bearer ${STATE.token}` }
+        });
+      } else if (item.type === 'post_article') {
+        const tags = (item.tags || '').split(',').filter(Boolean).map(t => ({ name: t.trim(), versions: [] }));
+        await fetch('https://qiita.com/api/v2/items', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${STATE.token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: item.title, body: item.body, tags, private: false })
+        });
+      }
+      await dbDelete('queue', item.id);
+      synced++;
+    } catch(e) {
+      // Keep in queue on failure
+    }
+  }
+
+  if (synced > 0) {
+    showToast(`${synced}件のキューを同期しました`, 'success');
+    updateQueueCount();
+    updatePendingBadge();
+  }
+}
+
+async function removeFromQueue(itemId) {
+  await dbDelete('queue', itemId);
+  renderQueueView();
+  updateQueueCount();
+}
+
+// =====================================================
+// SCHEDULE / TIMER
+// =====================================================
+function toggleSchedule() {
+  const enabled = document.getElementById('scheduleToggle').checked;
+  localStorage.setItem('qiita_schedule_enabled', enabled ? '1' : '0');
+  if (enabled) {
+    startScheduler();
+    showToast('定時キャッシュを有効にしました', 'success');
+  } else {
+    stopScheduler();
+    showToast('定時キャッシュを無効にしました', 'info');
+  }
+  updateNextScheduleInfo();
+}
+
+function saveSchedule() {
+  const time = document.getElementById('scheduleTime').value;
+  localStorage.setItem('qiita_schedule_time', time);
+  updateNextScheduleInfo();
+  showToast(`キャッシュ時刻を ${time} に設定しました`, 'success');
+}
+
+function startScheduler() {
+  stopScheduler();
+  STATE.scheduleTimer = setInterval(() => {
+    const enabled = localStorage.getItem('qiita_schedule_enabled') === '1';
+    if (!enabled) return;
+    const scheduledTime = localStorage.getItem('qiita_schedule_time') || '07:00';
+    const now = new Date();
+    const [h, m] = scheduledTime.split(':').map(Number);
+    if (now.getHours() === h && now.getMinutes() === m) {
+      if (STATE.isOnline) {
+        fetchArticles();
+        showToast('定時キャッシュ実行中...', 'info');
+      }
+    }
+  }, 60000); // Check every minute
+}
+
+function stopScheduler() {
+  if (STATE.scheduleTimer) { clearInterval(STATE.scheduleTimer); STATE.scheduleTimer = null; }
+}
+
+function updateNextScheduleInfo() {
+  const el = document.getElementById('nextScheduleInfo');
+  if (!el) return;
+  const enabled = localStorage.getItem('qiita_schedule_enabled') === '1';
+  const time = localStorage.getItem('qiita_schedule_time') || '07:00';
+  if (enabled) {
+    el.textContent = `次回実行: 毎日 ${time}`;
+  } else {
+    el.textContent = '無効';
+  }
+}
+
+// =====================================================
+// SAVED ARTICLES STATE SYNC
+// =====================================================
+async function refreshSavedList() {
+  const articles = await dbGetAll('saved');
+  STATE.savedArticles = articles;
+}
+
+// =====================================================
+// COUNTS
+// =====================================================
+async function updateSavedCount() {
+  const articles = await dbGetAll('saved');
+  document.getElementById('savedCount').textContent = articles.length;
+}
+
+async function updateDraftsCount() {
+  const drafts = await dbGetAll('drafts');
+  document.getElementById('draftsCount').textContent = drafts.length;
+}
+
+async function updateQueueCount() {
+  const queue = await dbGetAll('queue');
+  document.getElementById('queueCount').textContent = queue.length;
+  updatePendingBadge(queue.length);
+}
+
+function updatePendingBadge(count) {
+  const badge = document.getElementById('pendingBadge');
+  const info = document.getElementById('pendingInfo');
+  if (count === undefined) {
+    dbGetAll('queue').then(q => {
+      count = q.length;
+      info.textContent = `投稿待ち: ${count}件`;
+      badge.classList.toggle('hidden', count === 0);
+    });
+  } else {
+    info.textContent = `投稿待ち: ${count}件`;
+    badge.classList.toggle('hidden', count === 0);
+  }
+}
+
+function addPendingAction() {
+  updateQueueCount();
+  document.getElementById('pendingBadge').classList.remove('hidden');
+}
+
+function updateStatusBar() {}
+
+// =====================================================
+// MODAL HELPERS
+// =====================================================
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal(overlay.id);
+  });
+});
+
+document.getElementById('newArticleBtn').addEventListener('click', () => {
+  document.getElementById('articleTitle').value = '';
+  document.getElementById('articleBody').value = '';
+  initArticleTagInput([]);
+  document.getElementById('editorCharCount').textContent = '0文字';
+  document.getElementById('previewTitle').textContent = 'タイトル未入力';
+  document.getElementById('previewTitle').className = 'preview-pane-title empty';
+  document.getElementById('previewTags').innerHTML = '';
+  document.getElementById('previewBody').innerHTML =
+    '<p style="color:var(--color-text-dim);font-style:italic">本文を入力するとここにプレビューが表示されます</p>';
+  setEditorMode('split');
+  openModal('editorModal');
+});
+
+// =====================================================
+// SPLIT EDITOR
+// =====================================================
+function setEditorMode(mode) {
+  const body = document.getElementById('editorSplitBody');
+  body.className = 'editor-split-body mode-' + mode;
+
+  document.getElementById('modeWrite').classList.toggle('active', mode === 'write');
+  document.getElementById('modeSplit').classList.toggle('active', mode === 'split');
+  document.getElementById('modePreview').classList.toggle('active', mode === 'preview');
+
+  // プレビューモード・分割モードへ切り替え時に即レンダリング
+  if (mode === 'split' || mode === 'preview') livePreview();
+}
+
+function livePreview() {
+  const body  = document.getElementById('articleBody').value;
+  const title = document.getElementById('articleTitle').value.trim();
+
+  // 文字数カウント
+  document.getElementById('editorCharCount').textContent = body.length.toLocaleString() + '文字';
+
+  // タイトル
+  const titleEl = document.getElementById('previewTitle');
+  if (title) {
+    titleEl.textContent = title;
+    titleEl.className = 'preview-pane-title';
+  } else {
+    titleEl.textContent = 'タイトル未入力';
+    titleEl.className = 'preview-pane-title empty';
+  }
+
+  // タグ（hidden inputからカンマ区切りで取得）
+  const tagsEl = document.getElementById('previewTags');
+  tagsEl.innerHTML = getArticleTags().map(t =>
+    `<span class="tag-chip">${escapeHtml(t)}</span>`
+  ).join('');
+
+  // 本文 Markdown → HTML
+  document.getElementById('previewBody').innerHTML =
+    body ? renderMarkdown(body)
+         : '<p style="color:var(--color-text-dim);font-style:italic">本文を入力するとここにプレビューが表示されます</p>';
+}
+
+// =====================================================
+// TAG CHIP INPUT
+// =====================================================
+const MAX_TAGS = 5;
+
+function getArticleTags() {
+  const val = document.getElementById('articleTags').value;
+  return val ? val.split(',').filter(Boolean) : [];
+}
+
+function setArticleTagsValue(tags) {
+  document.getElementById('articleTags').value = tags.join(',');
+}
+
+function renderTagChips() {
+  const wrap = document.getElementById('articleTagsWrap');
+  const input = document.getElementById('articleTagInput');
+  const tags = getArticleTags();
+
+  // 既存チップを削除して再描画
+  wrap.querySelectorAll('.tag-chip-item').forEach(el => el.remove());
+
+  tags.forEach((tag, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip-item';
+    chip.innerHTML = `${escapeHtml(tag)}<button class="tag-chip-remove" onclick="removeArticleTag(${i})" tabindex="-1">×</button>`;
+    wrap.insertBefore(chip, input);
+  });
+
+  // 5つ以上はインプットを非表示
+  input.style.display = tags.length >= MAX_TAGS ? 'none' : '';
+  input.placeholder = tags.length === 0 ? 'タグを入力してEnter（最大5つ）' : `あと${MAX_TAGS - tags.length}個`;
+}
+
+function addArticleTag(raw) {
+  const tag = raw.trim().replace(/[,　\s]+/g, ''); // カンマ・空白除去
+  if (!tag) return;
+  const tags = getArticleTags();
+  if (tags.length >= MAX_TAGS) return;
+  if (tags.includes(tag)) return; // 重複スキップ
+  tags.push(tag);
+  setArticleTagsValue(tags);
+  renderTagChips();
+  livePreview();
+}
+
+function removeArticleTag(index) {
+  const tags = getArticleTags();
+  tags.splice(index, 1);
+  setArticleTagsValue(tags);
+  renderTagChips();
+  livePreview();
+}
+
+function handleTagInput(e) {
+  const input = e.target;
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    addArticleTag(input.value);
+    input.value = '';
+  } else if (e.key === 'Backspace' && input.value === '') {
+    // 入力が空のときBackspaceで最後のチップを削除
+    const tags = getArticleTags();
+    if (tags.length > 0) {
+      tags.pop();
+      setArticleTagsValue(tags);
+      renderTagChips();
+      livePreview();
+    }
+  }
+}
+
+function initArticleTagInput(initialTags = []) {
+  setArticleTagsValue(initialTags);
+  document.getElementById('articleTagInput').value = '';
+  renderTagChips();
+}
+
+
+
+// =====================================================
+// FILTER / VIEW MODE
+// =====================================================
+function setFilter(filter, btn) {
+  STATE.currentFilter = filter;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (STATE.searchQuery) performSearch(STATE.searchQuery);
+}
+
+function setViewMode(mode, btn) {
+  STATE.viewMode = mode;
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+// =====================================================
+// SYNC BUTTON
+// =====================================================
+document.getElementById('syncBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('syncBtn');
+  const icon = document.getElementById('syncIcon');
+  btn.disabled = true;
+  btn.querySelector('.sync-text').textContent = '同期中...';
+  icon.style.animation = 'spin 1s linear infinite';
+
+  try {
+    if (STATE.isOnline) {
+      // フィードはAPIから再取得、それ以外はキュー同期のみ
+      if (STATE.currentView === 'feed') {
+        await fetchArticles(STATE.searchQuery);
+      }
+      await syncPendingActions();
+      // 現在のビューを再描画
+      if (STATE.currentView === 'saved') await renderSavedView();
+      else if (STATE.currentView === 'drafts') await renderDraftsView();
+      else if (STATE.currentView === 'queue') await renderQueueView();
+      else if (STATE.currentView === 'profile') {
+        PROFILE_STATE.myArticles = null;
+        await renderProfileView();
+      }
+      showToast('同期完了', 'success');
+    } else {
+      await loadOfflineArticles();
+      showToast('オフラインのためキャッシュを読み込みました', 'warning');
+    }
+  } finally {
+    btn.disabled = false;
+    btn.querySelector('.sync-text').textContent = '同期';
+    icon.style.animation = '';
+  }
+});
+
+// =====================================================
+// CACHE MANAGEMENT
+// =====================================================
+async function clearCache() {
+  const tx = db.transaction(['articles'], 'readwrite');
+  tx.objectStore('articles').clear();
+  localStorage.removeItem('qiita_cache_ts');
+  STATE.cacheTimestamp = null;
+  STATE.articles = [];
+  document.getElementById('cacheInfo').textContent = 'キャッシュ: なし';
+  renderEmptyState('キャッシュをクリアしました', 'オンラインで記事を再取得してください');
+  showToast('キャッシュをクリアしました', 'info');
+}
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
+
+function promptPWAInstall() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(choice => {
+      if (choice.outcome === 'accepted') showToast('インストールを開始しました', 'success');
+      deferredPrompt = null;
+    });
+  } else {
+    showToast('ブラウザのメニューから「ホーム画面に追加」を選択してください', 'info');
+  }
+}
+
+// =====================================================
+// HELPERS
+// =====================================================
+function escapeHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function formatTime(isoString) {
+  if (!isoString) return '—';
+  const d = new Date(isoString);
+  return d.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function getActionLabel(type) {
+  const labels = { stock: 'ストック', unstock: 'ストック取り消し', follow_user: 'ユーザーフォロー', follow_tag: 'タグフォロー', post_article: '記事投稿' };
+  return labels[type] || type;
+}
+
+// =====================================================
+// TOAST
+// =====================================================
+function showToast(message, type = 'info') {
+  const icons = { success: 'fa-check-circle', error: 'fa-times-circle', info: 'fa-info-circle', warning: 'fa-exclamation-triangle' };
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<i class="fas ${icons[type]} toast-icon"></i><span>${escapeHtml(message)}</span>`;
+  document.getElementById('toastContainer').appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+// =====================================================
+// SPIN ANIMATION
+// =====================================================
+const spinStyle = document.createElement('style');
+spinStyle.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+document.head.appendChild(spinStyle);
+
+// =====================================================
+// SERVICE WORKER REGISTRATION
+// =====================================================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(reg => {
+      console.log('SW registered', reg.scope);
+      reg.addEventListener('updatefound', () => {
+        showToast('アプリを更新しています...', 'info');
+      });
+    })
+    .catch(err => console.error('SW registration failed', err));
+}
+
+// =====================================================
+// INIT
+// =====================================================
+async function init() {
+  await initDB();
+
+  const savedToken = localStorage.getItem('qiita_token');
+
+  if (savedToken) {
+    // Token exists — try to auto-login
+    STATE.token = savedToken;
+    if (navigator.onLine) {
+      // Verify token silently
+      try {
+        const res = await fetch('https://qiita.com/api/v2/authenticated_user', {
+          headers: { 'Authorization': `Bearer ${savedToken}` }
+        });
+        if (res.ok) {
+          const user = await res.json();
+          onLoginSuccess(user);
+        } else {
+          // Token revoked — show login
+          localStorage.removeItem('qiita_token');
+          STATE.token = null;
+          // loginScreen already visible by default
+        }
+      } catch (e) {
+        // Offline but token exists — allow through
+        onLoginSuccess(null);
+      }
+    } else {
+      // Offline with saved token — allow through
+      onLoginSuccess(null);
+    }
+  }
+  // If no saved token, loginScreen stays visible (default in HTML)
+
+  // Restore schedule settings
+  const scheduleEnabled = localStorage.getItem('qiita_schedule_enabled') === '1';
+  document.getElementById('scheduleToggle').checked = scheduleEnabled;
+  const scheduleTime = localStorage.getItem('qiita_schedule_time') || '07:00';
+  document.getElementById('scheduleTime').value = scheduleTime;
+  if (scheduleEnabled) startScheduler();
+  updateNextScheduleInfo();
+
+  // Load initial data (runs regardless, articles visible after login)
+  updateNetworkStatus(navigator.onLine);
+  if (navigator.onLine) {
+    fetchArticles();
+  } else {
+    loadOfflineArticles();
+  }
+
+  // Update counts
+  await refreshSavedList();
+  await updateSavedCount();
+  await updateDraftsCount();
+  await updateQueueCount();
+
+  // Restore cache timestamp
+  const ts = localStorage.getItem('qiita_cache_ts');
+  if (ts) {
+    STATE.cacheTimestamp = ts;
+    if (!navigator.onLine) {
+      document.getElementById('cacheInfo').textContent = `オフラインキャッシュ (${formatTime(ts)})`;
+    }
+  }
+}
+
+init();
+</script>
+</body>
+</html>
